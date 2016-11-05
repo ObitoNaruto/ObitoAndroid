@@ -2,6 +2,9 @@
 Intent callIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:12345678"));
 startActivity(callIntent);
 
+备注：(1)需要权限：<uses-permission android:name="android.permission.CALL_PHONE" />
+     (2)Uri的标准格式是:xxx://host:port/path,这里的“tel:12345678”由相应的程序进行处理了，如果通过Uri.getHost()来获取数据，必须加“//”
+
 2.将电话号传入拨号程序
 Intent dialIntent = new Intent(Intent.ACTION_DIAL,Uri.parse("tel:87654321"));
 startActivity(dialIntent);
