@@ -1,0 +1,199 @@
+
+1.窗口常用事件
+
+1.1设置窗口标题事件onTitleChanged
+    @Override
+	protected void onTitleChanged(CharSequence title, int color)
+	{
+		super.onTitleChanged(title, color);
+
+		Log.d("ActivityEventMain", "onTitleChanged_title:" + title);
+		Log.d("ActivityEventMain", "onTitleChanged_color:" + color);
+
+	}
+
+	触发1设置窗口标题事件onTitleChanged的三种途径：
+	（1）setTitle("新窗口标题");
+	（2）setTitleColor(12345);
+	（3）回调onPostCreate方法，因其实现中调用了onTitleChanged方法
+
+1.2 键盘按下和抬起事件onKeyDown和onKeyUp
+1.2.1捕获按键按下和抬起事件，并在按下“Menu”键时输出一条日志，按下一定时间（8秒）之后显示一个Toast弹框
+    @Override
+	public boolean onKeyDown(int keyCode, KeyEvent event)
+	{
+	    //输出按键代码
+		Log.d("onKeyDown:KeyCode", String.valueOf(keyCode));
+		//输出按键的重复次数
+		Log.d("onKeyDown:RepeatCount", String.valueOf(event.getRepeatCount()));
+		//如果重复次数到了200（8秒左右），显示提示信息
+		if (event.getRepeatCount() == 200)
+		{
+			Toast.makeText(this, "已经按了8秒了，休息一会吧！", Toast.LENGTH_LONG).show();
+		}
+		//捕捉菜单按钮
+		if (keyCode == KeyEvent.KEYCODE_MENU)
+		{
+			Log.d("onKeyDown", "MenuKey Down");
+
+		}
+		super.onKeyDown(keyCode, event);
+	}
+
+    @Override
+	public boolean onKeyUp(int keyCode, KeyEvent event)
+	{
+	    //捕获按键抬起事件
+		if (keyCode == KeyEvent.KEYCODE_MENU)
+		{
+			Log.d("onKeyUp", "MenuKey Up");
+		}
+		return super.onKeyUp(keyCode, event);
+	}
+
+1.2.2 捕获Home键
+步骤：
+    （1）private boolean isFinished;//true窗口退出，false窗口切换到后台执行，并没有退出
+    （2）重写finish方法，只要窗口退出，就一定会调用finish方法
+        @Override
+       	public void finish()
+       	{
+       		isFinished = true;//设置标记
+
+       		super.finish();
+       	}
+    （3）当窗口移到后台执行或退出时执行onStop方法
+        @Override
+    	protected void onStop()
+    	{
+    		if (!isFinished)//按了home键，切换了后台，并没有退出
+    		{
+    			Toast.makeText(this, "窗口后台运行!", Toast.LENGTH_LONG)
+    					.show();
+    		}
+    		super.onStop();
+    	}
+
+1.2.3 任意情况下捕捉键盘事件dispatchKeyEvent
+    @Override
+	public boolean dispatchKeyEvent(KeyEvent event)
+	{
+        //按下动作
+		if (event.getAction() == KeyEvent.ACTION_DOWN)
+		{
+			Log.d("displatchKeyEvent", "down");
+		}
+		else if (event.getAction() == KeyEvent.ACTION_UP)//抬起动作
+		{
+			Log.d("displatchKeyEvent", "up");
+		}
+		return super.dispatchKeyEvent(event);
+	}
+
+1.2.4 回退事件onBackPressed
+    @Override
+	public void onBackPressed()
+	{
+		Log.d("onBackPressed", "OK");
+		super.onBackPressed();
+	}
+
+1.2.5 按键长按事件onKeyLongPress
+使用步骤：
+       （1）需要在onKeyDown中调用startTracking方法且必须返回true
+        @Override
+       	public boolean onKeyDown(int keyCode, KeyEvent event)
+       	{
+       		event.startTracking();
+
+       		return true;// super.onKeyDown(keyCode, event);
+       	}
+       (2)然后捕捉按键长按事件
+        @Override
+       	public boolean onKeyLongPress(int keyCode, KeyEvent event)
+       	{
+
+       		Log.d("onKeyLongPress", "onKeyLongPress_KeyCode??" + keyCode);
+       		return super.onKeyLongPress(keyCode, event);
+       	}
+
+1.2.6 屏幕触摸事件onTouchEvent
+    @Override
+	public boolean onTouchEvent(MotionEvent event)
+	{
+        //按下状态
+		if (event.getAction() == MotionEvent.ACTION_DOWN)
+		{
+			Log.d("onTouchEvent", "onTouchEvent_Action:Down");
+		}
+		else if (event.getAction() == MotionEvent.ACTION_UP)//抬起状态
+		{
+			Log.d("onTouchEvent", "onTouchEvent_Action:Up");
+		}
+
+		Log.d("onTouchEvent", "onTouchEvent_X??" + event.getX());//触摸点x坐标值
+		Log.d("onTouchEvent", "onTouchEvent_Y??" + event.getY());//触摸点y坐标值，包括标题栏的高度
+
+		return super.onTouchEvent(event);
+	}
+
+1.2.7 窗口获得焦点事件onWindowFocusChanged
+获取失去焦点的方法：
+               （1）窗口获得焦点事件onWindowFocusChanged
+                @Override
+               	public void onWindowFocusChanged(boolean hasFocus)
+               	{
+               		Log.d("onWindowFocusChanged",
+               				hasFocus ? "onWindowFocusChanged:has Focus"
+               						: "onWindowFocusChanged:hasn't focus");
+               		super.onWindowFocusChanged(hasFocus);
+               	}
+               （2）onResume和onPause
+                @Override
+               	protected void onResume()
+               	{
+               		Log.d("onResume", "onResume:has Focus");
+               		super.onResume();
+               	}
+
+               	@Override
+               	protected void onPause()
+               	{
+               		Log.d("onPause", "onResume:hasn't Focus");
+               		super.onPause();
+               	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

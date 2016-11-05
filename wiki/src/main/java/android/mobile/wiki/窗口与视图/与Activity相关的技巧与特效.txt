@@ -1,0 +1,483 @@
+1.全屏显示-隐藏标题栏和状态栏
+备注：标题栏属于窗口的一部分，状态栏属于Android系统的一部分（状态栏显示各种通知信息以及网络、电池等硬件状态）
+实现方案如下：
+          方法一：直接在activity的onCreate中代码实实现
+            @Override
+         	protected void onCreate(Bundle savedInstanceState)
+         	{
+
+         		super.onCreate(savedInstanceState);
+                //隐藏窗口标题栏
+         		requestWindowFeature(Window.FEATURE_NO_TITLE);
+         		setContentView(R.layout.activity_full_screen);
+         		//隐藏系统状态栏
+         		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+         				WindowManager.LayoutParams.FLAG_FULLSCREEN);
+         	}
+
+          方法二：在AndroidManifest.xml文件中生命窗口时设置窗口未全屏状态或者单独隐藏标题栏和状态栏
+
+          //只隐藏标题栏
+           <activity
+            android:theme="@android:style/Theme.NoTitleBar"
+           >
+            ...
+           </activity>
+
+           //隐藏标题栏和系统状态栏（全屏状态）
+           <activity
+             android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+             ...
+           </activity>
+
+           //如果应用程序所有窗口都采用了同一个主题，可以直接通过<application>标签的android:theme属性设置
+           <application android:theme="@android:style/Theme.NoTitleBar">
+            ...
+           </application>
+
+           //自定义主题
+           （1）在styles.xml文件中加入<style>标签
+            <style name="Theme.FullScreen" parent="android:Theme">
+                   <item name="android:windowNoTitle">true</item>
+                   <item name="android:windowFullscreen">true</item>
+            </style>
+            (2)使用
+            <activity
+                android:theme="@style/Theme.FullScreen">
+                 ...
+            </activity>
+
+2.定制窗口标题栏-四种方式
+2.1 直接修改标题栏上的控件textView
+实现步骤：
+        （1）在activity的onCreate中调用获取
+            //显示标题文本的TextView控件
+            private TextView mTextView;
+            Window w = getWindow();
+            //获取窗口的顶层视图对象
+            ViewGroup v = (ViewGroup) w.getDecorView();
+            //获取显示标题文本控件的TextView对象
+            getTextView(v);
+        （2）getTextView方法
+        //递归查找显示标题文本的TextView对象，如果找到，将该对象保存在mTextView变量中
+        private void getTextView(ViewGroup vg)
+        	{
+        	    //当前容器视图中子视图的个数
+        		int count = vg.getChildCount();
+        		//扫描所有子视图
+        		for (int i = 0; i < count; i++)
+        		{
+        			//获取当前子视图
+        			View view = vg.getChildAt(i);
+        			//如果当前视图是容器视图，继续递归搜索TextView
+        			if (view instanceof ViewGroup)
+        			{
+        				//递归调用
+        				getTextView((ViewGroup) view);
+        			}
+        			else if (view instanceof View)//当前子视图不是容器视图
+        			{
+        				if (view instanceof TextView && mTextView == null)
+        					mTextView = (TextView) view;
+        			}
+        		}
+
+        	}
+2.2修改窗口主题
+styles.xml:
+<resources>
+    //设置标题的背景色
+    <style name="WindowTitleBackground" >
+        <item name="android:background">@drawable/bg</item>
+    </style>
+    //主题继承使用.
+    <style name="MyTheme" parent="android:Theme">
+        <item name="android:windowTitleSize">50dp</item>//标题栏尺寸
+        <item name="android:textColor">#FF0000</item>//文本颜色
+        <item name="android:textSize">30sp</item>//文本尺寸
+        <item name="android:windowTitleBackgroundStyle">@style/WindowTitleBackground</item>//标题背景
+    </style>
+
+</resources>
+AndroidManifest.xml:
+<activity
+    android:name=".ThemeTitleActivity"
+    android:label="修改窗口主题"
+    android:theme="@style/MyTheme" />
+
+代码中也可以设置自定义的主题：
+setTheme(R.style.MyTheme);
+
+备注：设置窗口主题应注意的几点：
+（1）动态设置的主题的优先级高于静态设置主题
+（2）setTheme方法必须在setContentView之前调用
+
+2.3 修改标题栏的布局文件
+标题栏布局文件new_title_bar.xml:
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+
+    android:orientation="horizontal" >
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="哈哈，终于把图标放标题右边了"  android:textColor="#FFF"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_launcher"
+        android:text="设置标题" />
+
+</LinearLayout>
+代码中应用：
+public class ChangeTitleLayoutActivity extends Activity
+{
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+
+		super.onCreate(savedInstanceState);
+		//通知窗口要使用定制的标题布局，必须在setContentView方法之前设置
+		requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+		setContentView(R.layout.activity_change_title_layout);
+		//为标题栏设置新的布局文件
+		getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE,
+				R.layout.new_title_bar);
+
+	}
+
+}
+
+因为Android3.0开始引入ActionBar，所以会冲突，解决方法如下：
+    <style name="WindowTitleBackground1">
+        <item name="android:background">#000</item>
+    </style>
+
+    <style name="MyTheme1" parent="android:Theme">
+        <item name="android:textSize">30sp</item>
+        <item name="android:windowTitleSize">50dp</item>
+        <item name="android:windowTitleBackgroundStyle">@style/WindowTitleBackground1</item>
+    </style>
+
+<activity
+    android:name=".ChangeTitleLayoutActivity"
+    android:label="@string/title_activity_change_title_layout"
+    android:theme="@style/MyTheme1" />
+
+
+2.4隐藏标题栏，完全在窗口布局中模拟标题栏
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="哈哈，终于把图标放标题右边了"
+            android:textColor="#00F"
+            android:textSize="16sp"  android:gravity="center_vertical"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_launcher"
+            android:text="设置标题" />
+    </LinearLayout>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="我的按钮" />
+
+</LinearLayout>
+
+public class HideOldTitleBarActivity extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_hide_old_title_bar);
+	}
+}
+
+3.为程序添加Splash
+<style name="Splash">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+
+</style>
+
+public class SplashActivity extends Activity
+{
+	private final int SPLASH_DISPLAY_LENGHT = 2000; // 延迟2秒
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+        //使用Handler.postDelayed时代码延迟2秒后执行
+		new Handler().postDelayed(new Runnable()
+		{
+            //2秒后会调用run方法
+			@Override
+			public void run()
+			{
+				//这里可以开启一个线程，在线程中装载数据
+				Intent mainIntent = new Intent(SplashActivity.this,MainActivity.class);
+				SplashActivity.this.startActivity(mainIntent);
+				SplashActivity.this.finish();
+			}
+
+		}, SPLASH_DISPLAY_LENGHT);
+	}
+
+}
+
+4.改变窗口大小、位置和透明度
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal" >
+
+    <SeekBar
+        android:id="@+id/seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:max="100"  android:progress="100" />
+
+</LinearLayout>
+
+public class ChangeActivity extends Activity implements OnSeekBarChangeListener
+{
+    private SeekBar seekBar;
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_change);
+		//获取用于设置窗口属性的LayoutParams对象
+		WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
+		//设置窗口的高度200像素
+		layoutParams.height =200;
+		//设置窗口的宽度300像素
+		layoutParams.width = 300;
+		//设置窗口垂直方向的位置
+		layoutParams.y = 50;
+		//设置窗口垂直位置时必须设置Gravity.TOP或者Gravity.BOTTOM
+		layoutParams.gravity = Gravity.TOP;
+		//设置窗口属性
+		getWindow().setAttributes(layoutParams);
+
+		seekBar = (SeekBar)findViewById(R.id.seekbar);
+		seekBar.setOnSeekBarChangeListener(this);
+	}
+	@Override
+	public void onProgressChanged(SeekBar seekBar, int progress,
+			boolean fromUser)
+	{
+		WindowManager.LayoutParams layoutParams = getWindow().getAttributes(); //获取用于设置窗口属性的LayoutParams对象
+		layoutParams.alpha = (float)progress/100;//设置窗口的透明度。0完全透明，1不透明
+		getWindow().setAttributes(layoutParams);//设置窗口属性
+
+	}
+	@Override
+	public void onStartTrackingTouch(SeekBar seekBar)
+	{
+
+
+	}
+	@Override
+	public void onStopTrackingTouch(SeekBar seekBar)
+	{
+
+
+	}
+}
+
+ <style name="Transparent" >
+        <item name="android:windowBackground">@android:drawable/toast_frame</item>
+        <item name="android:windowIsTranslucent">true</item>
+ </style>
+
+ <activity
+    android:name=".ChangeActivity"
+    android:label="@string/app_name" android:theme="@style/Transparent">
+       <intent-filter>
+           <action android:name="android.intent.action.MAIN" />
+
+           <category android:name="android.intent.category.LAUNCHER" />
+       </intent-filter>
+  </activity>
+
+5.按两次关闭窗口
+public class FinishedActivity extends Activity
+{
+	//按Back键冠词窗口的计数，只有count==2时才会关闭窗口
+	private int count = 1;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_finished);
+	}
+
+	@Override
+	public void finish()
+	{
+		//已经按了2次Back键
+		if (count == 2)
+		{
+			super.finish();
+
+		}
+		else
+		{
+			Toast.makeText(this, "再按一次退出程序", Toast.LENGTH_LONG).show();
+			//按第1次Back键，计数器增1
+			count++;
+		}
+	}
+
+}
+
+6.关闭所有的窗口
+public class CloseAllActivity extends Activity
+{
+	private static List<Activity> activities = new ArrayList<Activity>();//用于保存已显示窗口的实例List对象
+	private static int count = 0;//表示已显示的窗口的个数
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_close_all);
+		if (count == 0)
+		{
+			setTitle("主窗口");
+			count++;
+		}
+		else
+		{
+			setTitle("窗口" + count);
+			count++;
+		}
+		activities.add(this);//将当前窗口实例天际到List对象中
+	}
+
+	public void onClick_ShowNewActivity(View view)
+	{
+		Intent intent = new Intent(this, CloseAllActivity.class);
+		startActivity(intent);
+	}
+
+	public void onClick_CloseAllActivity(View view)
+	{
+		for (int i = 1; i < activities.size(); i++)
+		{
+			if (activities.get(i) != null)
+			{
+				activities.get(i).finish();//关闭窗口
+			}
+		}
+		count = 1;
+	}
+}
+
+7.窗口截屏
+实现步骤：
+        （1）获取存储屏幕图像的Bitmap对象
+        （2）获取状态栏高度。因为无法获取状态栏图像，所以必须将状态栏从屏幕图像文件中去除，否则图像上方状态栏位置会显示一条白色的区域
+        （3）获取屏幕图像的高度和宽度
+        （4）建立一个新的Bitmap对象（已去除状态栏高度），将屏幕图像中除了状态栏部分的其他区域复制到该图像中
+        （5）将新建立的Bitmap对象保存到SD卡的根目录
+
+public class CaptureScreenActivity extends Activity
+{
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_capture_screen);
+	}
+
+	public void onClick_CaptureScreen(View view)
+	{
+		//本例使用了延迟执行，防止单击按钮还没抬起就截取屏幕图像
+		new Handler().postDelayed( new Runnable()
+		{
+			public void run()
+			{
+				View v = getWindow().getDecorView();
+				v.setDrawingCacheEnabled(true);
+				v.buildDrawingCache();
+				//1.获取保存屏幕图像的Bitmap对象
+				Bitmap srcBitmap = v.getDrawingCache();
+
+				Rect frame = new Rect();
+				getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
+				int statusBarHeight = frame.top; //2.得到状态栏的高度
+
+				//3.获取屏幕图像的高度
+				Point outSize = new Point();
+				getWindowManager().getDefaultDisplay().getSize(outSize);
+				int width = outSize.x;
+				int height = outSize.y;
+				 //创建新的Bitmap对象，并截取除了状态栏的其他区域
+				Bitmap bitmap = Bitmap.createBitmap(srcBitmap, 0, statusBarHeight, width, height - statusBarHeight);
+				v.destroyDrawingCache();
+
+
+				FileOutputStream fos = null;
+				try
+				{
+					//为了使每次保存图像的文件名不同，这里使用临时文件来生成相应的文件名
+					File file = File.createTempFile("capture", ".jpg", new File(
+							"/sdcard"));
+					fos = new FileOutputStream(file);
+					if (null != fos)
+					{
+						//5.将屏幕图像保存到SD的根目录
+						bitmap.compress(Bitmap.CompressFormat.PNG, 90, fos);
+						fos.flush();
+						Toast.makeText(CaptureScreenActivity.this, "已成功截屏，截屏文件名：" + file.getName(),
+								Toast.LENGTH_LONG).show();
+
+					}
+					fos.close();
+				}
+				catch (Exception e)
+				{
+				}
+
+			}
+		}, 2000);
+
+	}
+
+}
+
+
+
+
+
+
+
+
+
+

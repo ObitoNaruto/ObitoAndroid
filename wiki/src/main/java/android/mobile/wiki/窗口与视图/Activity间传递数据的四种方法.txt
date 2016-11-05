@@ -1,0 +1,116 @@
+1.使用Intent传递数据
+
+2.通过static变量传递数据
+
+3.通过剪切板Clipboard传递数据：只能存储简单类型数据或者可序列化数据
+步骤：
+    （1）存
+                intent = new Intent(this, MyActivity3.class);
+                //获取剪切板对象
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+		        //创建Data对象
+				Data clipboardData = new Data();
+				//设置Data对象的值
+				clipboardData.id = 6666;
+				clipboardData.name = "通过剪切板传递的数据";
+				//创建字节数组输出流对象，用于将Data对象转换未字节流
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                //用于保存Data对象生成的Base64格式的字符串
+				String base64Str = "";
+				try
+				{
+					ObjectOutputStream oos = new ObjectOutputStream(baos);
+					//将Data对象写入对象输出流
+					oos.writeObject(clipboardData);
+                    //将字节流进行Base64编码
+					base64Str = Base64.encodeToString(baos.toByteArray(),
+							Base64.DEFAULT);
+					oos.close();
+				}
+				catch (Exception e)
+				{
+					// TODO: handle exception
+				}
+			    //获取存储文本数据的剪切板对象
+				ClipData clipData = ClipData.newPlainText("data", base64Str);
+				//设置主剪切板
+		        clipboard.setPrimaryClip(clipData);
+
+				startActivity(intent);
+
+    （2）取
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            //从剪切板中获取Base64编码字符串
+    		String base64Str = clipboard.getPrimaryClip().getItemAt(0).getText()
+    				.toString();
+    		//将Base64编码字符串解码成字节数组
+    		byte[] buffer = Base64.decode(base64Str, Base64.DEFAULT);
+
+    		ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+    		try
+    		{
+    			ObjectInputStream ois = new ObjectInputStream(bais);
+    			//将字节流还原成Data对象
+    			Data data = (Data) ois.readObject();
+    			textView.setText(base64Str + "\n\ndata.id£º" + data.id
+    					+ "\ndata.name£º" + data.name);
+    		}
+    		catch (Exception e)
+    		{
+    			// TODO: handle exception
+    		}
+
+4.通过全局对象传递数据
+使用步骤：
+        （1）定义全局Application
+        public class MyApp extends Application
+        {
+            public String country;
+            public Data data = new Data();
+        }
+        （2）指定自定义的Application
+        <application
+            android:name=".MyApp"
+            android:icon="@drawable/ic_launcher"
+            android:label="@string/app_name" >
+
+            ....
+        <application/>
+        (3)存
+        MyApp myApp = (MyApp) getApplicationContext();
+        myApp.country = "中国";
+        myApp.data.id = 1234;
+        myApp.data.name = "test";
+        intent = new Intent(this, MyActivity4.class);
+        startActivity(intent);
+       （4）取
+         MyApp myApp = (MyApp) getApplicationContext();
+
+       	textView.setText("MyApp.country：" + myApp.country + "\nMyApp.data.id："
+       				+ myApp.data.id + "\nMyApp.data.name" + myApp.data.name);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

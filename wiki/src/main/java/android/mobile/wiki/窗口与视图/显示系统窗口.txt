@@ -1,0 +1,52 @@
+1.直接拨号
+Intent callIntent = new Intent(Intent.ACTION_CALL,Uri.parse("tel:12345678"));
+startActivity(callIntent);
+
+2.将电话号传入拨号程序
+Intent dialIntent = new Intent(Intent.ACTION_DIAL,Uri.parse("tel:87654321"));
+startActivity(dialIntent);
+
+3.调用拨号程序
+Intent touchDialerIntent = new Intent("com.android.phone.action.TOUCH_DIALER");
+startActivity(touchDialerIntent);
+
+4.浏览网页
+Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://blog.csdn.net/nokiaguy"));
+startActivity(webIntent);
+
+5.查看联系人
+Intent contactListIntent = new Intent("com.android.contacts.action.LIST_CONTACTS");
+startActivity(contactListIntent);
+
+6.显示系统设置界面
+Intent settingsIntent = new Intent("android.settings.SETTINGS");
+startActivity(settingsIntent);
+
+7.Wi-Fi设置界面
+Intent wifiSettingsIntent = new Intent("android.settings.WIFI_SETTINGS");
+startActivity(wifiSettingsIntent);
+
+8.启动处理音频的程序
+Intent audioIntent = new Intent(Intent.ACTION_GET_CONTENT);
+audioIntent.setType("audio/*");
+startActivity(Intent.createChooser(audioIntent, "选择音频程序"));
+
+9.回到Home窗口（相当于按Home键）
+Intent gohomeIntent = new Intent("android.intent.action.MAIN");
+gohomeIntent.addCategory("android.intent.category.HOME");
+startActivity(gohomeIntent);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

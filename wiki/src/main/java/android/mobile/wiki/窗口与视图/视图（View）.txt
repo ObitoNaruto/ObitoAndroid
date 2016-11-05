@@ -1,0 +1,35 @@
+1.动态添加视图
+步骤：
+    （1）获得当前的容器视图对象
+    （2）获得或创建待添加的视图对象
+    （3）将相应的视图对象添加到容器视图中
+以下是两种实现：
+    实现一：
+    //获得test1.xml中的LinearLayout对象
+    LinearLayout textLinearLayout1 = (LinearLayout)getLayoutInflater().inflate(R.layout.test1, null);
+    //将test1.xml中的LinearLayout对象设为当前容器视图
+    setContentView(textLinearLayout1);
+    //获取test2.xml中的LinearLayout对象，并将该对象添加到test1.xml的LinearLayout对象中
+    LinearLayout testLinearLayout2 = (LinearLayout)getLayoutInflater().inflate(R.layout.test2, testLinearLayout1);
+
+    实现二：
+    //获得test1.xml中的LinearLayout对象
+    LinearLayout textLinearLayout1 = (LinearLayout)getLayoutInflater().inflate(R.layout.test1, null);
+    //将test1.xml中的LinearLayout对象设为当前容器视图
+    setContentView(textLinearLayout1);
+    LinearLayout testLinearLayout2 = (LinearLayout)getLayoutInflater().inflate(R.layout.test2, null);
+    //获取test2.xml中的LinearLayout对象，并将该对象添加到test1.xml的LinearLayout对象中
+    textLinearLayout1.addView(testLinearLayout2);
+
+
+
+
+
+
+
+
+
+
+
+
+
