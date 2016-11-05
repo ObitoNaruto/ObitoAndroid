@@ -1,0 +1,27 @@
+
+1.组件名,指定具体的窗口
+1.1 setClass方法
+Intent intent = new Intent();
+intent.setClass(this, MyActivity.class);
+1.2 setClassName方法
+1.3 setComponent方法
+
+2.动作---Action
+
+3.种类----Category
+
+4.数据----Data
+
+5.标记----Flags
+
+
+
+
+
+
+
+
+
+
+
+

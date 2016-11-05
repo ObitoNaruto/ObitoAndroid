@@ -1,0 +1,108 @@
+ 实现步骤：
+ 1.供其他应用调用的activity在AndroidManifest.xml在定义方式：
+ <activity
+            android:name="mobile.android.web.browser.WebBrowserActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+ </activity>
+
+2.第三方应用程序调用WebBrowserActivity的方式：
+    //初始化Context和Class
+    private Context mContext;
+    private Class mClass;
+    try
+    {
+    	//Context.CONTEXT_INCLUDE_CODE--允许代码被装载，即使这些代码可能不安全
+    	//Context.CONTEXT_IGNORE_SECURITY--忽略任何安全限制
+    	mContext = createPackageContext(
+    	"mobile.android.web.browser",
+    	Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
+    	//动态装载WebBrowserActivity类
+    	mClass = mContext.getClassLoader().loadClass("mobile.android.web.browser.WebBrowserActivity");
+
+    }
+    catch(Exception e)
+    {
+    	e.printStackTrace();
+    }
+
+2.1 使用Action的方式：
+    public void onClick_Action(View view)
+	{
+		Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://blog.csdn.net/nokiaguy"));
+		startActivity(webIntent);
+
+	}
+
+2.2 setClassName直接指定Package Name和Class Name
+    public void onClick_SetClassName(View view)
+	{
+		Intent webIntent = new Intent();
+		webIntent.setClassName("mobile.android.web.browser", "mobile.android.web.browser.WebBrowserActivity");
+		webIntent.setData(Uri.parse("http://nokiaguy.blogjava.net"));
+		startActivity(webIntent);
+	}
+
+2.3 setClassName_Context指定Context对象和Class Name
+    public void onClick_SetClassName_Context(View view)
+	{
+
+		if(mContext == null || mClass == null) return;
+		Intent webIntent = new Intent();
+		webIntent.setClassName(mContext, "mobile.android.web.browser.WebBrowserActivity");
+		webIntent.setData(Uri.parse("http://nokiaguy.cnblogs.com"));
+		startActivity(webIntent);
+
+	}
+
+2.4 setClass
+    public void onClick_SetClass(View view)
+	{
+		if(mContext == null || mClass == null) return;
+		Intent webIntent = new Intent();
+		webIntent.setClass(mContext, mClass);
+		webIntent.setData(Uri.parse("http://nokiaguy.cnblogs.com"));
+		startActivity(webIntent);
+	}
+2.5 setComponentName
+    public void onClick_SetComponentName(View view)
+	{
+		if(mContext == null || mClass == null) return;
+		ComponentName cn = new ComponentName(mContext, mClass);
+		Intent webIntent = new Intent();
+		webIntent.setComponent(cn);
+		webIntent.setData(Uri.parse("http://nokiaguy.cnblogs.com"));
+		startActivity(webIntent);
+	}
+
+2.6 setClassName方法调用显示系统计算器
+    public void onClick_ShowCalculator(View view)
+	{
+		Intent intent = new Intent();
+		intent.setClassName("com.android.calculator2",
+				"com.android.calculator2.Calculator");
+		startActivity(intent);
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

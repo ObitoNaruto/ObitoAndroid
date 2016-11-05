@@ -1,0 +1,33 @@
+
+1.获取Action
+String action = intent.getAction();
+
+2.获取多个Category
+Set<String> categories = intent.getCategories();
+
+3.获取MimeType
+String mimeType = intent.getType();
+
+4.获取与Data相关的信息
+
+Uri uri = intent.getData();//直接后去Uri对象
+String uriStr = intent.getDataString();//获取字符串形式的Uril
+String scheme = intent.getScheme();//获取scheme
+
+5.获取Flags
+int flags = intent.getFlags();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

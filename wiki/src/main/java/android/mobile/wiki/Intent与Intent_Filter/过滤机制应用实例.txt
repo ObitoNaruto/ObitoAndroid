@@ -1,0 +1,140 @@
+1.被调用类的过滤器
+        <activity
+            android:name="mobile.android.filter.producer.FilterProducerActivity"
+            android:label="@string/app_name" >
+            //1号过滤器：用于启动窗口，在这里不需要考虑
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            //2号过滤器
+            <intent-filter>
+                <action android:name="android.intent.action.MYACTION1" />
+                <action android:name="android.intent.action.MYACTION2" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.MYCATEGORY1" />
+                <category android:name="android.intent.category.MYCATEGORY2" />
+            </intent-filter>
+            //3号过滤器
+            <intent-filter>
+                <action android:name="android.intent.action.MYACTION3" />
+                <action android:name="android.intent.action.MYACTION4" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.MYCATEGORY3" />
+                <category android:name="android.intent.category.MYCATEGORY4" />
+            </intent-filter>
+            //4号过滤器
+            <intent-filter>
+                <action android:name="android.intent.action.MYACTION5" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.MYCATEGORY5" />
+                //只匹配scheme，Uri其他部分随意指定：http://www.microsoft.com:8888/index.html
+                <data android:scheme="http" />
+                <data android:mimeType="audio/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            //5号过滤器
+            <intent-filter>
+                <action android:name="android.intent.action.MYACTION6" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                //http://www.google.com:8080/work/upload.html
+                <data
+                    android:host="*"
+                    android:mimeType="audio/*"
+                    android:path="/work/upload.jsp"
+                    android:port="8080"
+                    android:scheme="http" />
+            </intent-filter>
+            //6号过滤器
+            <intent-filter>
+                <action android:name="android.intent.action.MYACTION7" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                //ftp://192.168.17.100:8080/work/uploat.html
+                <data
+                    android:host="192.168.17.100"
+                    android:mimeType="audio/*"
+
+                    android:port="8080"
+                    android:scheme="ftp" />
+                <data android:pathPattern=".*.html" />
+            </intent-filter>
+            //7号过滤器
+            <intent-filter>
+                <action android:name="android.intent.action.MYACTION7" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                //可验证通过：
+                //path验证通过：https://192.168.17.111:8888/work/test.up
+                //pathPattern属性验证通过：https://192.168.17.111:8888/p/m/abc.html
+                //pathPrefix属性验证通过：https://192.168.17.111:8888/test/up.aspx
+                <data
+                    android:host="192.168.17.111"
+                    android:mimeType="audio/*"
+                    android:path="/work/test.up"
+                    android:pathPattern=".*.html"
+                    android:pathPrefix="/test"
+                    android:port="8888"
+                    android:scheme="https" />
+            </intent-filter>
+        </activity>
+
+2.调用着
+    public void onClick_IntentFilter2(View view)
+	{
+		Intent intent = new Intent("android.intent.action.MYACTION1");
+		intent.addCategory("android.intent.                                                                      category.MYCATEGORY1");
+		intent.addCategory("android.intent.category.MYCATEGORY2");
+		startActivity(intent);
+	}
+
+	public void onClick_IntentFilter3(View view)
+	{
+		Intent intent = new Intent("android.intent.action.MYACTION4");
+
+		startActivity(intent);
+	}
+	public void onClick_IntentFilter4(View view)
+	{
+		Intent intent = new Intent("android.intent.action.MYACTION5");
+		intent.setDataAndType(Uri.parse("http://www.microsoft.com:8888/index.html"), "audio/mp3");
+		startActivity(intent);
+	}
+	public void onClick_IntentFilter5(View view)
+	{
+		Intent intent = new Intent("android.intent.action.MYACTION6");
+		intent.setDataAndType(Uri.parse("http://www.google.com:8080/work/upload.jsp"), "audio/*");
+		startActivity(intent);
+	}
+	public void onClick_IntentFilter6(View view)
+	{
+		Intent intent = new Intent("android.intent.action.MYACTION7");
+		intent.setDataAndType(Uri.parse("ftp://192.168.17.100:8080/work/upload.html"), "audio/*");
+		startActivity(intent);
+	}
+	public void onClick_IntentFilter7(View view)
+	{
+		Intent intent = new Intent("android.intent.action.MYACTION7");
+		//intent.setDataAndType(Uri.parse("https://192.168.17.111:8888/work/test.up"), "audio/wav");
+		//intent.setDataAndType(Uri.parse("https://192.168.17.111:8888/test/up.aspx"), "audio/wav");
+		intent.setDataAndType(Uri.parse("https://192.168.17.111:8888/p/m/abc.html"), "audio/wav");
+		startActivity(intent);
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
