@@ -1,0 +1,91 @@
+1.选项菜单
+1.1关联Activity
+MenuItem adMenuItem = menu.add(1, 1, 1, "添加");
+addMenuItem.setIntent(new Intent(this, AddActivity.class));
+备注：如果设置了菜单项的单击事件，并且单击事件返回true，则与菜单项关联的Activity将失效
+
+1.2响应菜单的单击动作
+
+（1）public class Main extends Activity implements OnMenuItemClickListener
+
+（2）MenuItem deleteMenuItem = menu.add(1, menuItemId++, 2, "删除");
+		deleteMenuItem.setIcon(R.drawable.delete);
+		deleteMenuItem.setOnMenuItemClickListener(this);
+（3）@Override
+   	public boolean onMenuItemClick(MenuItem item)
+   	{
+   		Log.d("onMenuItemClick", "true");
+   		showDialog(item.getTitle().toString());
+   		return false;
+   	}
+1.3 动态添加、修改和删除选项菜单
+
+    （1）private Menu menu;
+	private int menuItemId = Menu.FIRST;
+
+    （2）@Override
+	    public void onClick(View view)
+	    {
+            //只有单击手机上的“Menu‘按钮，onCreateOptionMenu方法才会调用，因此，如果不按”Menu“按钮，，menu变量值是null
+		    if (menu == null)
+			    return;
+		    for (int i = 10; i < 15; i++)
+		    {
+			    int id = menuItemId++;
+			    menu.add(1, id, id, "²Ëµ¥" + i);
+		    }
+	    }
+
+2 上下文菜单
+
+    @Override
+	public void onCreateContextMenu(ContextMenu menu, View view,
+			ContextMenuInfo menuInfo)
+	{
+		super.onCreateContextMenu(menu, view, menuInfo);
+		// menu.clear();
+		menu.setHeaderTitle("上下文菜单");
+		menu.setHeaderIcon(R.drawable.face);
+		menu.add(0, menuItemId++, Menu.NONE, "菜单项1").setCheckable(true)
+				.setChecked(true);
+		menu.add(20, menuItemId++, Menu.NONE, "菜单项2");
+		menu.add(20, menuItemId++, Menu.NONE, "菜单项3").setChecked(true);
+		menu.setGroupCheckable(20, true, true);
+		SubMenu sub = menu.addSubMenu(0, menuItemId++, Menu.NONE, "子菜单");
+		sub.add("子菜单1");
+		sub.add("子菜单2");
+		//getMenuInflater().inflate(R.menu.file_menu, menu);
+
+
+
+	}
+	//file_menu.xml
+	<?xml version="1.0" encoding="utf-8"?>
+    <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    	<item android:title="新建" />
+    	<item android:title="打开" />
+    	<item android:title="退出" />
+    </menu>
+        //注册
+        registerForContextMenu(button);
+		registerForContextMenu(editText);
+		registerForContextMenu(textView);
+
+		//上下文菜单事件
+	    @Override
+    	public boolean onContextItemSelected(MenuItem item)
+    	{
+    		Log.d("onContextItemSelected:itemid=", String.valueOf(item.getItemId()));
+    		if (!"菜单项1".equals(item.getTitle().toString()))
+    			showDialog("*" + item.getTitle().toString() + "*");
+    		return super.onContextItemSelected(item);
+    	}
+
+    	备注：也可以采用选项菜单那种监听
+
+
+ 3.菜单事件
+ onPrepareOptionsMenu：在显示选项菜单之前被调用，一般可用来修改即将要显示的选项菜单
+ onOptionsMenuClosed：在关闭选项菜单时被调用
+ onContextMenuClosed；在关闭上下文菜单时被调用
+ onMenuOpened：在显示选项菜单之前被调用，该刚发在onPrepareOptionsMenu之后调用

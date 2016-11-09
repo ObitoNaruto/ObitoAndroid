@@ -1,0 +1,207 @@
+
+1.PopupWindow用例一
+1.1布局
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="horizontal" android:layout_width="fill_parent"
+	android:layout_height="wrap_content" android:gravity="bottom">
+
+	<LinearLayout android:id="@+id/home" android:orientation="vertical"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:background="@drawable/button_normal_translucent"
+		android:layout_weight="1">
+		<ImageView android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:src="@drawable/home"
+			android:paddingTop="5dp" />
+		<TextView android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:text="首页"
+			android:gravity="center" />
+	</LinearLayout>
+
+
+	<LinearLayout android:orientation="horizontal"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:background="@drawable/button_normal" android:layout_weight="1"
+		android:gravity="center">
+		<ImageView android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:src="@drawable/mine" />
+		<TextView android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="我的" />
+	</LinearLayout>
+
+	<LinearLayout android:orientation="vertical"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:background="@drawable/button_normal"
+		android:layout_weight="1">
+		<ImageView android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:src="@drawable/more"
+			android:paddingTop="18dp" />
+		<TextView android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:text="更多"
+			android:gravity="center" android:paddingTop="5dp"/>
+
+	</LinearLayout>
+
+
+</LinearLayout>
+1.2 代码
+public class Main extends Activity
+{
+	private PopupWindow pop;
+	private View layout;
+	private int state = 2;//状态变量，1：popwindow已弹出；2：popupWindow菜单未弹出
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event)
+	{
+		switch (keyCode)
+		{
+			case KeyEvent.KEYCODE_MENU://按下“Menu‘键的动作
+				if (state == 1)//菜单已弹出，不再弹出新的窗口
+					return false;
+				layout = getLayoutInflater().inflate(R.layout.menu_layout, null);//装载选项菜单布局文件
+				//创建PopupWindow对象，并在指定位置显示窗口
+				pop = new PopupWindow(layout, getWindowManager()
+						.getDefaultDisplay().getWidth(), getWindowManager()
+						.getDefaultDisplay().getHeight());
+				//设置弹出窗口的位置
+				pop.showAtLocation(layout, Gravity.BOTTOM, 0, 0);
+
+				View home = layout.findViewById(R.id.home);
+				home.setOnClickListener(new OnClickListener()
+				{
+
+					@Override
+					public void onClick(View view)
+					{
+						Toast.makeText(Main.this, "µ¥»÷¶¨ÖÆ²Ëµ¥.", Toast.LENGTH_LONG)
+								.show();
+						pop.dismiss();
+						state = 2;//重新设置状态变量
+
+					}
+				});
+				state = 1;//弹出选项菜单后，将状态变量设置为1，显示选项菜单已弹出
+				return false;
+
+			case KeyEvent.KEYCODE_BACK:
+				if (state == 1)//如果选项菜单已弹出，关闭它
+				{
+					pop.dismiss();
+					state = 2;//将状态变量设为选项菜单已关闭
+				}
+				else if (state == 2)
+				{
+					finish();//如果选项菜单还没有显示，或已经关闭，则直接关闭当前的Activity
+				}
+				return false;
+		}
+
+		return super.onKeyDown(keyCode, event);
+	}
+
+}
+
+2.PopupWindow用例二
+public class Main extends Activity implements OnKeyListener,OnItemClickListener
+{
+	private PopupWindow popup;
+
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+        //创建在弹出窗口中显示的GridView
+		GridView gvPopupWindow = (GridView) getLayoutInflater().inflate(
+				R.layout.popup_window, null);
+		GridAdapter gridAdapter = new GridAdapter(this);
+		gvPopupWindow.setAdapter(gridAdapter);
+		gvPopupWindow.setOnKeyListener(this);
+		gvPopupWindow.setOnItemClickListener(this);
+		//创建用于显示菜单的PopupWindow对象，菜单是通过GridView显示网状图像和文字
+		popup = new PopupWindow(gvPopupWindow, LayoutParams.FILL_PARENT,
+				LayoutParams.WRAP_CONTENT);
+		//使创建用于显示菜单的PopupWindow对象可以获得焦点，以便可以通过轨迹球或者上、下、坐、右键来控制菜单项
+		popup.setFocusable(true);
+
+	}
+
+	@Override
+	public void onItemClick(AdapterView<?> parent, View view, int position,
+			long id)
+	{
+		popup.dismiss();
+		Toast.makeText(this, Const.GRID_ITEM_TEXT_LIST[position], Toast.LENGTH_LONG).show();
+
+	}
+
+	@Override
+	public boolean onKey(View v, int keyCode, KeyEvent event)
+	{
+		switch (keyCode)
+		{
+			case KeyEvent.KEYCODE_BACK:
+				if(popup.isShowing())//捕捉Back键，如果窗口已经显示，关闭它
+					popup.dismiss();
+				break;
+		}
+
+		return false;
+	}
+
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		menu.add("menu");//必须创建一项，否则系统不会调用onMenuOpened方法
+
+		return super.onCreateOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onMenuOpened(int featureId, Menu menu)
+	{
+		if (popup != null)
+		{
+			if (popup.isShowing())
+			{
+				popup.dismiss();
+			}
+			else
+			{
+				View layout = getLayoutInflater().inflate(R.layout.main, null);
+				popup.showAtLocation(layout, Gravity.CENTER, 0, 0);
+
+			}
+		}
+		return false;//返回false，不会显示在onCreateOptionsMenu方法中创建的菜单
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
