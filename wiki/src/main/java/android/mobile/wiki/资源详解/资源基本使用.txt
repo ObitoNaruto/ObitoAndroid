@@ -1,0 +1,431 @@
+
+1.Java反射技术与枚举资源
+    //通过资源名称获取资源ID，name参数表示资源名称
+    private int getResourceId(String name)
+	{
+		//获取R类中所有的内嵌类
+		Class[] resourceClasses = R.class.getClasses();
+
+		for (Class resourceClass : resourceClasses)
+		{
+
+			try
+			{
+			    //在当前内嵌类中搜索name指定的常亮，如果不存在该常量，抛出异常
+				Field field = resourceClass.getField(name);
+				//搜索到name指定常量后，获取常量值，由于资源id都是静态常量，所以对象传入Null
+				int resourceID = field.getInt(null);
+				return resourceID;
+			}
+			catch (Exception e)
+			{
+
+			}
+		}
+		return -1;
+	}
+
+2.字符串资源
+2.1 字符串数组
+<string-array name="array_test">
+    <item>one</item>
+    <item>two</item>
+</string-array>
+
+String[] arrays = getResource().getStringArray(R.array.array_test);
+
+2.2复数字符串
+//定义复数资源
+<plurals name="numberOfSongAvailable">
+    <item quantity="one">One song found.</item>
+    //指定了一个参数（%d）,使用other资源使需要传递一个整数
+    <item quantity="other">%d songs found.</item>
+</plurals>
+
+//引用数字为1的复数字符串资源
+getResource().getQuantityString(R.plurals.numberOfSongAvailable, 1);
+//引用数字为other的复数字符串资源，调用时向other资源传递一个参数值
+getResource().getQuantityString(R.plurals.numberOfSongAvailable, 20, 20);
+
+2.3在字符串中使用引号
+//输出This'll work
+<string name="str1">"This'll work"</string>
+//输出This'll work
+<string name="str2">This\'ll work</string>
+//输出"apple"
+<string name="str3">\"apple\"</string>
+
+2.4用占位符格式化字符串
+//$s表示该占位符要求传入字符串，$d表示该占位符要求传入整数
+<string name="test">Hello, %1$s! You have %2$d new messages</string>
+
+String text = String.format(getResource().getString(R.string.test), "jiqin", 18);
+
+2.5用HTML标签格式化字符串资源
+字符串资源支持如下的HTML标签：
+<b>:粗体字
+<i>:斜体字
+<u>:带下划线的文字
+//同时包含HTML标签和占位符的字符串资源，”<“需要使用”&lt;“表示，">"可以直接使用
+<string name="welcome_message">Hello, %1$s! You have &lt;b>%2$d new message&lt;/b></string>
+
+//username中包含HTML特殊标签
+String escapedUserName = TextUtil.htmlEncode(username);
+String text = String.format(getResource().getString(R.string.welcome_message), escapedUserName, mailCount);
+CharSequence styledText = Html.fromHtml(text);
+
+3.值资源（values）
+
+3.1整数资源（Integer）
+<integer name="height">75</integer>
+
+android:layout_height="@integer/height"
+
+getResource().getInteger(R.integer.height);
+
+3.2 尺寸资源（Dimension）
+<dimen name="size_in">1.5in</dimen>
+//以下返回的都是像素值：
+//size1 = 25.6
+float size1 = getResource().getDimension(R.dimen.size_in);
+//采用舍去的方式返回对应的整数,size2=25
+int size2 = getResource().getDimensionPixelOffset(R.dimen.size_in);
+//采用四舍五入的方式返回对应的整数,size3=26
+int size3 = getResource().getDimensionPixelSize(R.dimen.size_in);
+
+//直接获取尺寸大小
+TypedValue outValue = new TypedValue();
+//getValue方法的第3个参数如果为true，表示即使资源引用了另外的资源，系统会通过递归方法获取最终的资源值
+getResource().getValue(R.dimen.size_in, outValue, true);
+//由于getValue方法并没有直接返回尺寸资源的值，所以需要使用complexToFloat方法进行转换
+// value = 2.5
+float value = TypedValue.complexToFloat(outValue.data);
+
+3.4布尔资源（Boolean）
+
+<bool name="adjust_view_bounds">true</bool>
+
+android:adjustViewBounds="@bool/adjust_view_bounds"
+
+getResource().getBoolean(R.bool.adjust_view_bounds);
+
+3.5整数数组资源参考字符串数组资源
+
+3.6 类型那个数组资源（Typed-Array）
+
+<array name="icons">
+   <item>@drawable/home</item>
+   <item>@drawable/logout</item>
+</array>
+
+<array name="colors">
+   <item>#ffff0000</item>
+   <item>#ff00ff00</item>
+</array>
+
+TypeArray icons = getResource().obtainTypedArray(R.array.icons);
+Drawable drawable = icons.getDrawable(0);
+
+TypedArray colors = getResource().obtainTypedArray(R.array.colors);
+int color = colors.getColor(0, 0);
+
+4.菜单资源（Menu）
+4.1选项菜单
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/mnuFestival"
+        android:icon="@drawable/festival"
+        android:title="节日"/>
+
+    <group android:id="@+id/mnuFunction" >
+        <item
+            android:id="@+id/mnuEdit"
+            android:icon="@drawable/edit"
+            android:title="编辑"/>
+        //为删除菜单项指定了单击方法
+        <item
+            android:id="@+id/mnuDelete"
+            android:icon="@drawable/delete"
+            android:onClick="onClick_Delete"
+            android:title="删除"/>
+        <item
+            android:id="@+id/mnuFinish"
+            android:icon="@drawable/finish"
+            android:title="完成"/>
+    </group>
+
+    <item
+        android:id="@+id/mnuOthers"
+        android:title="其他功能">
+        //定义子菜单
+        <menu>
+            //所有子菜单项都带Radio Button
+            <group android:checkableBehavior="single" >
+                //该菜单项的种类是system（在最后显示），而且RadioButton处于选中状态
+                <item
+                    android:id="@+id/mnuDiary"
+                    android:checked="true"
+                    android:menuCategory="system"
+                    android:title="日记"/>
+                <item
+                    android:id="@+id/mnuAudio"
+                    android:orderInCategory="2"
+                    android:title="音频"/>
+                <item
+                    android:id="@+id/mnuVideo"
+                    android:orderInCategory="3"
+                    android:title="视频"/>
+            </group>
+        </menu>
+    </item>
+
+</menu>
+
+    @Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+
+		MenuInflater menuInflater = getMenuInflater();
+		menuInflater.inflate(R.menu.options_menu, menu);
+		menu.findItem(R.id.mnuEdit).setOnMenuItemClickListener(this);
+		menu.getItem(4).getSubMenu().setHeaderIcon(R.drawable.icon);
+
+		return true;
+	}
+
+    @Override
+	public boolean onMenuItemClick(MenuItem item)
+	{
+		Toast.makeText(this, "<" + item.getTitle() + ">±»µ¥»÷", Toast.LENGTH_LONG)
+				.show();
+		return false;
+	}
+    public void onClick_Delete(MenuItem item)
+    {
+    	Toast.makeText(this, "onClick_Delete",Toast.LENGTH_LONG).show();
+    }
+
+4.2上下文菜单
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<item android:id="@+id/mnuEdit" android:title="编辑" />
+	<item android:id="@+id/mnuDelete" android:title="删除" />
+	<item android:id="@+id/mnuFinish" android:title="完成" />
+
+</menu>
+
+    @Override
+	public void onCreateContextMenu(ContextMenu menu, View view,
+			ContextMenuInfo menuInfo)
+	{
+		MenuInflater menuInflater = getMenuInflater();
+		menuInflater.inflate(R.menu.context_menu, menu);
+		super.onCreateContextMenu(menu, view, menuInfo);
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		EditText editText = (EditText)findViewById(R.id.edittext);
+		registerForContextMenu(editText);
+	}
+
+5.图像资源（drawable）
+5.1图层资源（Layer）
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:top="20dp" android:left="20dp">
+       //默认情况下，图像会尽量充满显示图像的视图，因此，显示的图像可能会被拉伸，为了避免图像拉伸，可以在<item>标签中使用<bitmap>标签引用图像
+      <bitmap android:src="@drawable/android1"
+        android:gravity="center" />
+    </item>
+    <item android:top="20dp" android:left="20dp">
+      <bitmap android:src="@drawable/android2"
+        android:gravity="center" />
+    </item>
+</layer-list>
+
+5.2图像状态资源（state)
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    //按下状态
+    <item android:state_pressed="true"
+          android:drawable="@drawable/pressed" /> <!-- pressed -->
+    //获得焦点状态
+    <item android:state_focused="true"
+          android:drawable="@drawable/focused" />
+    //默认状态
+    <item android:drawable="@drawable/normal" />
+</selector>
+
+5.3图像级别资源（Level）
+资源文件lamp.xml:
+<level-list xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:drawable="@drawable/lamp_off" android:minLevel="6"
+		android:maxLevel="10" />
+	<item android:drawable="@drawable/lamp_on" android:minLevel="12"
+		android:maxLevel="20" />
+</level-list>
+
+布局文件level.xml
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<ImageView android:id="@+id/imageview_lamp"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:src="@drawable/lamp" />
+	<Button android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:text="开灯"
+		android:onClick="onClick_LampOn" />
+	<Button android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:text="关灯"
+		android:onClick="onClick_LampOff" />
+</LinearLayout>
+
+public class Level extends Activity {
+
+	private ImageView ivLamp;
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.level);
+
+		ivLamp = (ImageView) findViewById(R.id.imageview_lamp);
+		//设置level为8，显示lamp_off.png
+		ivLamp.setImageLevel(8);
+	}
+	public void onClick_LampOn(View view)
+	{
+		ivLamp.setImageLevel(15);//lamp_on
+	}
+
+	public void onClick_LampOff(View view)
+	{
+		ivLamp.getDrawable().setLevel(6);//显示lamp_off
+
+	}
+}
+5.4淡入淡出资源（Cross-fade）
+资源文件cross_fade.xml:
+<transition xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:drawable="@drawable/lamp_off" />
+	<item android:drawable="@drawable/lamp_on" />
+</transition>
+布局文件cross_fade.xml:
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<ImageView android:id="@+id/imageview_lamp"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:src="@drawable/cross_fade" />
+	<Button android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:text="开灯"
+		android:onClick="onClick_LampOn" />
+	<Button android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:text="关灯"
+		android:onClick="onClick_LampOff" />
+</LinearLayout>
+代码：
+public class CrossFade extends Activity
+{
+
+	private ImageView ivLamp;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.cross_fade);
+
+		ivLamp = (ImageView) findViewById(R.id.imageview_lamp);
+	}
+
+	public void onClick_LampOn(View view)
+	{
+
+		TransitionDrawable drawable = (TransitionDrawable) ivLamp.getDrawable();
+		//从第一个图像切换到第二个图像，其中使用1秒时间完成淡入淡出效果
+		drawable.startTransition(1000);
+	}
+
+	public void onClick_LampOff(View view)
+	{
+		TransitionDrawable drawable = (TransitionDrawable) ivLamp.getDrawable();
+		//从第二个图像切换到第一个图像，其中使用1秒时间完成淡入淡出效果
+		drawable.reverseTransition(1000);
+	}
+}
+
+5.5嵌入图像资源（Inset）,使要显示的图像小于装载的视图
+资源文件inset.xml:
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+	android:drawable="@drawable/background" android:insetTop="50dp"
+	android:insetLeft="50dp" android:insetBottom="50dp" android:insetRight="50dp" />
+5.6 剪切资源（Clip）
+资源文件clip.xml:
+//clipOrientation:截取的方向，gravity：如何截取图像，left表示从左侧截取图像，right表示从右侧截取
+<clip xmlns:android="http://schemas.android.com/apk/res/android"
+	android:drawable="@drawable/progress" android:clipOrientation="horizontal"
+	android:gravity="left" />
+
+布局文件：
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="200dp"
+	android:layout_height="wrap_content" android:background="@drawable/background">
+	<ImageView android:id="@+id/image" android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:background="@drawable/clip"/>
+</LinearLayout>
+代码：
+public class Clip extends Activity {
+
+	private ImageView ivLamp;
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.clip);
+        ImageView imageview = (ImageView) findViewById(R.id.image);
+        ClipDrawable drawable = (ClipDrawable) imageview.getBackground();
+        //0：图像无法显示，10000：显示全部的图像
+        drawable.setLevel(5000);
+	}
+
+
+}
+
+5.7 外形资源（Shape）
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+	android:shape="rectangle">
+	//定义渐变色（从左下角到右上角绘制渐变色）
+	<gradient android:startColor="#FFFF0000" android:endColor="#80FF00FF"
+		android:angle="45" />
+    //定义控件内容到边界的距离（到4条边界的距离都是7）
+	<padding android:left="7dp" android:top="7dp" android:right="7dp"
+		android:bottom="7dp" />
+	//定义边框线（边框线宽度2，颜色白色）
+	<stroke android:width="2dp" android:color="#FFF" />
+    //定义圆角，圆角半径8
+	<corners android:radius="8dp" />
+</shape>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

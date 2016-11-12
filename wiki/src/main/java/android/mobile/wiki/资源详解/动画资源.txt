@@ -1,0 +1,661 @@
+
+1.动画资源
+1.1属性动画(Property）
+动画资源文件propery_anim.xml:
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="sequentially" >//ordering:动画执行顺序
+
+    <objectAnimator
+        android:duration="2000"
+        android:propertyName="y"
+        android:valueTo="300"
+        android:valueType="intType" />
+
+    <objectAnimator
+        android:duration="3000"
+        android:propertyName="x"
+        android:valueTo="220"
+        android:valueType="intType" />
+
+</set>
+
+public class Main extends Activity
+{
+	private Button button;
+	private Move move;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		button = (Button) findViewById(R.id.button);
+		move = new Move();
+
+	}
+	//对Move对象使用属性动画
+	class Move
+	{
+		private int y;
+		private int x;
+
+		public int getY()
+		{
+			return y;
+		}
+
+		public void setY(int y)
+		{
+			this.y = y;
+			//垂直移动按钮
+			button.layout(button.getLeft(), y, button.getRight(),
+					y + button.getMeasuredHeight());
+		}
+
+		public int getX()
+		{
+			return x;
+		}
+
+		public void setX(int x)
+		{
+			this.x = x;
+			//水平移动按钮
+			button.layout(x, button.getTop(), x + button.getMeasuredWidth(),
+					button.getBottom());
+		}
+
+	}
+
+	public void onClick_Move(View view)
+	{
+
+		//装载属性动画
+		AnimatorSet set = (AnimatorSet) AnimatorInflater.loadAnimator(this,
+				R.animator.property_anim);
+		// 设置要控制的对象
+		set.setTarget(move);
+		// 开始动画
+		set.start();
+
+
+	}
+}
+
+1.2帧动画（Frame）
+动画资源文件frame_animation.xml
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+	android:oneshot="false">
+	<item android:drawable="@drawable/anim1" android:duration="50" />
+	<item android:drawable="@drawable/anim2" android:duration="50" />
+	<item android:drawable="@drawable/anim3" android:duration="50" />
+	<item android:drawable="@drawable/anim4" android:duration="50" />
+	<item android:drawable="@drawable/anim5" android:duration="50" />
+	<item android:drawable="@drawable/anim6" android:duration="50" />
+	<item android:drawable="@drawable/anim7" android:duration="50" />
+	<item android:drawable="@drawable/anim8" android:duration="50" />
+	<item android:drawable="@drawable/anim9" android:duration="50" />
+	<item android:drawable="@drawable/anim10" android:duration="50" />
+	<item android:drawable="@drawable/anim11" android:duration="50" />
+	<item android:drawable="@drawable/anim12" android:duration="50" />
+</animation-list>
+frame_animation1.xml:
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+	android:oneshot="false">
+	<item android:drawable="@drawable/myanim1" android:duration="100" />
+	<item android:drawable="@drawable/myanim2" android:duration="100" />
+	<item android:drawable="@drawable/myanim3" android:duration="100" />
+	<item android:drawable="@drawable/myanim4" android:duration="100" />
+	<item android:drawable="@drawable/myanim5" android:duration="100" />
+	<item android:drawable="@drawable/myanim6" android:duration="100" />
+</animation-list>
+
+布局文件：
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent" android:background="#FFF">
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+		android:orientation="horizontal" android:layout_width="fill_parent"
+		android:layout_height="wrap_content">
+		<Button android:id="@+id/btnStartAnim" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="开始动画" />
+		<Button android:id="@+id/btnStopAnim" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="停止动画" />
+						<Button android:id="@+id/btnOneShot" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="运行一次动画" />
+	</LinearLayout>
+		<Button android:id="@+id/btnAddFrame" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="添加动画" />
+
+
+	<ImageView android:id="@+id/ivAnimView" android:layout_width="320dp"
+		android:layout_height="234dp" />
+
+</LinearLayout>
+
+代码：
+public class Main extends Activity implements OnClickListener
+{
+	private ImageView ivAnimView;
+	private AnimationDrawable animationDrawable;
+	private AnimationDrawable animationDrawable1;
+	private Button btnAddFrame;
+
+	@Override
+	public void onClick(View view)
+	{
+		switch (view.getId())
+		{
+			case R.id.btnOneShot://只播放一次动画
+                //动态修改android:oneshot属性值
+				animationDrawable.setOneShot(true);
+				//需要先停止动画，然后再开始动画设置才能生效
+				animationDrawable.stop();
+				animationDrawable.start();
+
+				break;
+			case R.id.btnStartAnim://循环播放动画
+				animationDrawable.setOneShot(false);
+				animationDrawable.stop();
+				animationDrawable.start();
+
+				break;
+
+			case R.id.btnStopAnim://停止播放动画
+				animationDrawable.stop();
+				if (animationDrawable1 != null)
+				{
+					animationDrawable1.stop();//如果添加了第二个动画，则同时停止第二个动画
+				}
+
+				break;
+			case R.id.btnAddFrame://在第一个帧动画后添加第二个帧动画
+                //装载第二个帧动画
+				animationDrawable1 = (AnimationDrawable) getResources()
+						.getDrawable(R.anim.frame_animation1);
+				//设置第二个帧动画停留的时间2000毫秒，不管这段时间内帧动画是否播放玩，都切换到第一个动画
+				animationDrawable.addFrame(animationDrawable1, 2000);
+				btnAddFrame.setEnabled(false);
+
+				break;
+
+		}
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		Button btnStartAnim = (Button) findViewById(R.id.btnStartAnim);
+		Button btnStopAnim = (Button) findViewById(R.id.btnStopAnim);
+		Button btnOneShot = (Button) findViewById(R.id.btnOneShot);
+		btnAddFrame = (Button) findViewById(R.id.btnAddFrame);
+		btnStartAnim.setOnClickListener(this);
+		btnStopAnim.setOnClickListener(this);
+		btnOneShot.setOnClickListener(this);
+		btnAddFrame.setOnClickListener(this);
+		ivAnimView = (ImageView) findViewById(R.id.ivAnimView);
+		ivAnimView.setBackgroundResource(R.anim.frame_animation);
+		Object backgroundObject = ivAnimView.getBackground();
+		animationDrawable = (AnimationDrawable) backgroundObject;
+
+		// animationDrawable.setAlpha(100);
+
+	}
+}
+
+1.3移动补间动画（TranslateTween）
+
+装载动画：
+Animation animation = AnimationUtils.loadAnimation(this, R.anim.test);
+
+将设置的补间动画应用到控件上方式有两种：
+eg:editText.startAnimation(animation);
+
+editText.setAnimation(animation);
+animation.start();
+
+循环播放：animation.setRepeatCount(Animation.INFINITE);
+1.3.1 循环向右移动的EditText与上下弹跳的球
+动画资源文件：
+translate_right.xml
+<translate xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/linear_interpolator"
+	android:fromXDelta="-320" android:toXDelta="320" android:fromYDelta="0"
+	android:toYDelta="0" android:duration="5000" />
+
+translate_bottom.xml:
+<translate xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/accelerate_interpolator"
+	android:fromXDelta="0" android:toXDelta="0" android:fromYDelta="0"
+	android:toYDelta="260" android:duration="2000" />
+
+translate_top.xml:
+<translate xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/decelerate_interpolator"
+	android:fromXDelta="0" android:toXDelta="0" android:fromYDelta="260"
+	android:toYDelta="0" android:duration="2000" />
+
+代码：
+public class Main extends Activity implements OnClickListener,
+		AnimationListener
+{
+	private EditText editText;
+	private ImageView imageView;
+	private Animation animationRight;
+	private Animation animationBottom;
+	private Animation animationTop;
+
+	@Override
+	public void onAnimationEnd(Animation animation)
+	{
+		//根据当前显示的动画决定下次显示哪一个动画
+		if (animation.hashCode() == animationBottom.hashCode())
+			imageView.startAnimation(animationTop);
+		else if (animation.hashCode() == animationTop.hashCode())
+			imageView.startAnimation(animationBottom);
+
+	}
+
+	@Override
+	public void onAnimationRepeat(Animation animation)
+	{
+
+	}
+
+	@Override
+	public void onAnimationStart(Animation animation)
+	{
+
+	}
+
+	@Override
+	public void onClick(View view)
+	{
+
+		editText.setAnimation(animationRight);
+		animationRight.start();
+		animationRight.setRepeatCount(Animation.INFINITE);
+		editText.setVisibility(EditText.VISIBLE);
+
+		imageView.startAnimation(animationBottom);//开始小球的动画
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		editText = (EditText) findViewById(R.id.edittext);
+		editText.setVisibility(EditText.INVISIBLE);
+		Button button = (Button) findViewById(R.id.button);
+		button.setOnClickListener(this);
+		imageView = (ImageView) findViewById(R.id.imageview);
+		animationRight = AnimationUtils.loadAnimation(this,
+				R.anim.translate_right);
+		animationBottom = AnimationUtils.loadAnimation(this,
+				R.anim.translate_bottom);
+		animationTop = AnimationUtils.loadAnimation(this, R.anim.translate_top);
+		animationBottom.setAnimationListener(this);
+		animationTop.setAnimationListener(this);
+	}
+}
+
+1.4缩放补间动画（scale Tween）
+
+ge:跳动的心
+
+动画资源文件
+to_small.xml:
+<scale xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/accelerate_interpolator"
+	android:fromXScale="1.0" android:toXScale="0.2" android:fromYScale="1.0"
+	android:toYScale="0.2" android:pivotX="50%" android:pivotY="50%"
+	android:duration="500" />
+to_large.xml:
+<scale xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/decelerate_interpolator"
+	android:fromXScale="0.2" android:toXScale="1.0" android:fromYScale="0.2"
+	android:toYScale="1.0" android:pivotX="50%" android:pivotY="50%"
+	android:duration="500" />
+代码：
+public class Main extends Activity implements AnimationListener
+{
+	private Animation toLargeAnimation;
+	private Animation toSmallAnimation;
+    private ImageView imageView;
+	@Override
+	public void onAnimationEnd(Animation animation)
+	{
+		if(animation.hashCode() == toLargeAnimation.hashCode())//交替应用两个动画文件
+			imageView.startAnimation(toSmallAnimation);
+		else
+			imageView.startAnimation(toLargeAnimation);
+
+	}
+
+	@Override
+	public void onAnimationRepeat(Animation animation)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onAnimationStart(Animation animation)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		imageView = (ImageView) findViewById(R.id.imageview);
+		toLargeAnimation = AnimationUtils.loadAnimation(this, R.anim.to_large);
+		toSmallAnimation = AnimationUtils.loadAnimation(this, R.anim.to_small);
+		toLargeAnimation.setAnimationListener(this);
+		toSmallAnimation.setAnimationListener(this);
+		imageView.startAnimation(toSmallAnimation);
+
+	}
+}
+
+1.5旋转动画
+
+旋转的星系：
+动画资源文件：
+hesper.xml:
+//应用于金星
+<rotate xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/linear_interpolator" android:fromDegrees="0"
+	android:toDegrees="360" android:pivotX="200%" android:pivotY="300%"
+	android:duration="5000" android:repeatMode="restart" android:repeatCount="infinite"/>
+
+earth.xml:
+//应用于地球
+<rotate xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/linear_interpolator" android:fromDegrees="0"
+	android:toDegrees="360" android:pivotX="200%" android:pivotY="300%"
+	android:duration="10000" android:repeatMode="restart" android:repeatCount="infinite"/>
+
+sun.xml
+<rotate xmlns:android="http://schemas.android.com/apk/res/android"
+	android:interpolator="@android:anim/linear_interpolator" android:fromDegrees="360"
+	android:toDegrees="0" android:pivotX="50%" android:pivotY="50%"
+	android:duration="20000" android:repeatMode="reverse" android:repeatCount="infinite"/>
+
+public class Main extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		ImageView ivEarth = (ImageView) findViewById(R.id.ivEarth);
+		ImageView ivHesper = (ImageView) findViewById(R.id.ivHesper);
+		ImageView ivSun = (ImageView) findViewById(R.id.ivSun);
+		Animation earthAnimation = AnimationUtils.loadAnimation(this,
+				R.anim.earth);
+		Animation hesperAnimation = AnimationUtils.loadAnimation(this,
+				R.anim.hesper);
+		Animation sunAnimation = AnimationUtils.loadAnimation(this, R.anim.sun);
+		ivEarth.startAnimation(earthAnimation);
+		ivHesper.startAnimation(hesperAnimation);
+		ivSun.startAnimation(sunAnimation);
+
+
+
+	}
+}
+
+1.6透明补间动画
+投掷炸弹：
+动画资源文件：
+投掷动画资源missile.xml:
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+	<alpha android:interpolator="@android:anim/accelerate_interpolator"
+		android:fromAlpha="1.0" android:toAlpha="0.1" android:duration="2000" />
+	<translate android:interpolator="@android:anim/accelerate_interpolator"
+		android:fromXDelta="0" android:toXDelta="0" android:fromYDelta="0"
+		android:toYDelta="-380" android:duration="2000" />
+	<scale android:interpolator="@android:anim/accelerate_interpolator"
+		android:fromXScale="1.0" android:toXScale="0.2" android:fromYScale="1.0"
+		android:toYScale="0.2" android:pivotX="50%" android:pivotY="50%"
+		android:duration="2000" />
+
+</set>
+
+爆炸动画blast.xml：
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+	android:oneshot="true" >
+	<item android:drawable="@drawable/blast_f01" android:duration="100" />
+	<item android:drawable="@drawable/blast_f02" android:duration="100" />
+	<item android:drawable="@drawable/blast_f03" android:duration="100" />
+	<item android:drawable="@drawable/blast_f04" android:duration="100" />
+	<item android:drawable="@drawable/blast_f05" android:duration="100" />
+	<item android:drawable="@drawable/blast_f06" android:duration="100" />
+	<item android:drawable="@drawable/blast_f07" android:duration="100" />
+	<item android:drawable="@drawable/blast_f08" android:duration="100" />
+	<item android:drawable="@drawable/blast_f09" android:duration="100" />
+	<item android:drawable="@drawable/blast_f10" android:duration="100" />
+	<item android:drawable="@drawable/blast_f11" android:duration="100" />
+	<item android:drawable="@drawable/blast_f12" android:duration="100" />
+	<item android:drawable="@drawable/blast_f13" android:duration="100" />
+	<item android:drawable="@drawable/blast_f14" android:duration="100" />
+	<item android:drawable="@drawable/blast_f15" android:duration="100" />
+</animation-list>
+
+布局文件；
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent" android:background="#FFF" android:gravity="bottom|center">
+	<mobile.android.alpha.anim.MyImageView android:id="@+id/ivBlast" android:layout_width="100dp"
+		android:layout_height="80dp"  android:layout_marginBottom="-80dp" />
+	<ImageView android:id="@+id/ivMissile" android:layout_width="80dp"
+		android:layout_height="263dp" android:src="@drawable/missile" />
+</LinearLayout>
+
+代码：
+public class Main extends Activity implements OnTouchListener,
+		AnimationListener
+{
+	private ImageView ivMissile;
+	private MyImageView ivBlast;
+	private AnimationDrawable animationDrawable;
+	private Animation missileAnimation;
+
+	@Override
+	public boolean onTouch(View view, MotionEvent event)
+	{
+
+		ivMissile.startAnimation(missileAnimation);//触摸炸弹后，开始播放动画
+
+		return false;
+	}
+
+	@Override
+	public void onAnimationEnd(Animation animation)
+	{
+		//在播放投掷炸弹动画结束后，显示MyImageView控件，并将显示炸弹的ImageView控件隐藏
+		ivBlast.setVisibility(View.VISIBLE);
+		ivMissile.setVisibility(View.INVISIBLE);
+		try
+		{
+			MediaPlayer mediaPlayer = MediaPlayer.create(this, R.raw.bomb);//开始播放爆炸的声音
+			mediaPlayer.stop();
+			mediaPlayer.prepare();
+			mediaPlayer.start();
+		}
+		catch (Exception e)
+		{
+		}
+		animationDrawable.stop();
+		//播放爆炸效果
+		animationDrawable.start();
+
+	}
+
+	@Override
+	public void onAnimationRepeat(Animation animation)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onAnimationStart(Animation animation)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		ivMissile = (ImageView) findViewById(R.id.ivMissile);
+		ivMissile.setOnTouchListener(this);
+
+		ivBlast = (MyImageView) findViewById(R.id.ivBlast);
+		ivBlast.setBackgroundResource(R.anim.blast);
+		Object backgroundObject = ivBlast.getBackground();
+		animationDrawable = (AnimationDrawable) backgroundObject;//爆炸动画
+		ivBlast.animationDrawable = animationDrawable;
+
+		missileAnimation = AnimationUtils.loadAnimation(this, R.anim.missile);
+		missileAnimation.setAnimationListener(this);
+		//在程序启动后。将显示爆炸效果的MyImageView控件隐藏
+		ivBlast.setVisibility(View.INVISIBLE);
+		ivBlast.ivMissile = ivMissile;
+
+	}
+}
+
+爆炸组件：
+public class MyImageView extends ImageView
+{
+	public AnimationDrawable animationDrawable;
+    public ImageView ivMissile;
+	public Field field;
+
+	@Override
+	protected void onDraw(Canvas canvas)
+	{
+		try
+		{
+
+			field = AnimationDrawable.class.getDeclaredField("mCurFrame");
+			field.setAccessible(true);
+			int curFrame = field.getInt(animationDrawable);
+			//当显示完最后一幅图像后，将MyImageView控件隐藏，应显示炸弹的原始图像
+			if (curFrame == animationDrawable.getNumberOfFrames() - 1)
+			{
+				setVisibility(View.INVISIBLE);
+				ivMissile.setVisibility(View.VISIBLE);//
+			}
+
+		}
+		catch (Exception e)
+		{
+
+		}
+		super.onDraw(canvas);
+
+	}
+
+	public MyImageView(Context context, AttributeSet attrs)
+	{
+		super(context, attrs);
+
+	}
+
+}
+
+1.7 自定义渲染器（Interpolator）
+
+public class MyInterceptor implements Interpolator
+{
+
+	@Override
+	public float getInterpolation(float input)
+	{
+        //
+		if (input <= 0.5)
+			return input * input;
+		else  //
+			return (1 - input) * (1 - input) ;
+
+	}
+
+}
+
+translate.xml:
+<translate xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="5000"
+    android:fromXDelta="0"
+    android:fromYDelta="0"
+
+    android:toXDelta="0"
+    android:toYDelta="1550" />
+
+public class Main extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		ImageView imageView = (ImageView)findViewById(R.id.imageview);
+		Animation animation = AnimationUtils.loadAnimation(this, R.anim.translate);
+
+		animation.setInterpolator(new MyInterceptor());
+		animation.setRepeatCount(Animation.INFINITE);
+		imageView.startAnimation(animation);
+
+	}
+}
+
+备注：自定义动画渲染器不能使用android:interpolator属性设置
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
