@@ -1,0 +1,114 @@
+1.1像QQ一样输入表情图像
+public class Main extends Activity
+{
+	private EditText edittext;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		edittext = (EditText) findViewById(R.id.edittext);
+	}
+
+	public void onClick_RandomFace(View view)
+	{
+		int randomId = 1 + new Random().nextInt(9);//随机产生1至9的整数
+		try
+		{
+			//根据随机产生的1至9的整数从R.drawable类中获得相应资源id的Field对象
+			Field field = R.drawable.class.getDeclaredField("face" + randomId);
+            //获得资源id
+			int resourceId = Integer.parseInt(field.get(null).toString());
+			//根据资源id获得资源图像的Bitmap对象
+			Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
+					resourceId);
+			//根据bitmap对象创建ImageSpan对象
+			ImageSpan imageSpan = new (this, bitmap);
+			//创建一个SpannableString对象，以便插入用ImageSpan对象封装的图像
+			SpannableString spannableString = new SpannableString("face");
+			//用ImageSpan对象替换face
+			spannableString.setSpan(imageSpan, 0, 4,
+					Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            //将随机获得的图像追加到EditText控件的最后
+			edittext.append(spannableString);
+
+		}
+		catch (Exception e)
+		{
+
+		}
+	}
+
+}
+
+1.2在EditText中输入特定的字符
+eg:只想输入数字，以下三种方法：
+android:digits=“0123456789”
+android:numeric="integer"
+android:inputType="number"
+
+备注：软键盘弹出时阻止界面上移
+getWindow().stSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+
+1.3 AutoCompleteTextView自动完成输入内容的控件
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<TextView android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:text="AutoCompleteTextView" />
+	<AutoCompleteTextView android:id="@+id/autoCompleteTextView"
+		android:layout_width="fill_parent" android:layout_height="wrap_content" />
+	<TextView android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:text="MultiAutoCompleteTextView" />
+	<MultiAutoCompleteTextView android:id="@+id/multiAutoCompleteTextView"
+		android:layout_width="fill_parent" android:layout_height="wrap_content" />
+</LinearLayout>
+
+
+public class Main extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		String[] autoString = new String[]
+		{ "联合国", "联合国安理会", "联合国五个常任理事国", "bb", "bcd", "bcdf", "Google", "Google Map", "Google Android" };
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+				android.R.layout.simple_dropdown_item_1line, autoString);
+		// AutoCompleteTextView
+		AutoCompleteTextView autoCompleteTextView = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView);
+		autoCompleteTextView.setAdapter(adapter);
+
+		// MultiAutoCompleteTextView
+		MultiAutoCompleteTextView multiAutoCompleteTextView = (MultiAutoCompleteTextView) findViewById(R.id.multiAutoCompleteTextView);
+		multiAutoCompleteTextView.setAdapter(adapter);
+		multiAutoCompleteTextView
+				.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,248 @@
+
+1.TextView
+1.1 显示富文本（URL、不同大小、字体、颜色的文本）
+
+布局文件：
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<TextView android:id="@+id/textview1" android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:padding="20dp" />
+	<TextView android:id="@+id/textview2" android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:textSize="20sp"
+		android:autoLink="all" android:padding="20dp" android:text="@string/link_text" />
+</LinearLayout>
+代码：
+TextView textView1 = (TextView) findViewById(R.id.textview1);
+TextView textView2 = (TextView) findViewById(R.id.textview2);
+
+//设置第一个TextView要显示的文本（带预定义标签的字符串）
+String html = "<font color='red'>I love Android.</font><br>";
+html += "<font color='#0000FF' ><big><i>I love Android.</i></big></font><p>";
+html += "<font color='@" + android.R.color.white+ "' ><tt><b><big><u>I love Android.</u></big><b></tt></font><p>";
+html += "<big><a href='http://51happyblog.com'>ÎÒµÄÍøÕ¾£º51happyblog.com</a></big>";
+
+//将带预定义标签的字符串转换成CharSequence对象
+CharSequence charSequence = Html.fromHtml(html);
+textView1.setText(charSequence);
+//设置后，点击链接调用浏览器显示网页
+textView1.setMovementMethod(LinkMovementMethod.getInstance());
+
+String text = "我的URL；http://51happyblog.com\n";
+text += "我的Email：abcd@126.com\n";
+text += "我的电话：+86 024-12345678";
+textView2.setText(text);
+textView2.setMovementMethod(LinkMovementMethod.getInstance());
+
+1.2用<img>标签在TextView控件上显示图像
+public class Main extends Activity
+{
+	//由于无法直接通过文件名访问资源目录下的图像资源，所以利用Java反射技术获取图像文件对应的资源id
+	public int getResourceId(String name)
+	{
+		try
+		{
+			Field field = R.drawable.class.getField(name);
+			return Integer.parseInt(field.get(null).toString());//取得并返回资源ID
+		}
+		catch (Exception e)
+		{
+
+		}
+		return 0;
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		TextView textView = (TextView) findViewById(R.id.textview);
+		textView.setTextColor(Color.BLACK);
+		textView.setBackgroundColor(Color.WHITE);
+		textView.setTextSize(20);
+		String html = "图像1<img src='image1'/>图像2<img src='image2'/>图像3<img src='image3'/><p>";
+		html += "图像4<a href='http://51happyblog.com'><img src='image4'/></a>图像5<img src='image5'/>";
+
+        //
+		CharSequence charSequence = Html.fromHtml(html, new ImageGetter()
+		{
+
+			@Override
+			public Drawable getDrawable(String source)
+			{
+				Drawable drawable = getResources().getDrawable(
+						getResourceId(source));
+				//第三个图像文件50%等比压缩显示
+				if (source.equals("image3"))
+				    //这里必须使用setBounds设置图像的显示区域，否则图像无法显示
+					drawable.setBounds(0, 0, drawable.getIntrinsicWidth() / 2,
+							drawable.getIntrinsicHeight() / 2);
+				else
+					drawable.setBounds(0, 0, drawable.getIntrinsicWidth(),
+							drawable.getIntrinsicHeight() );
+				return drawable;
+
+			}
+		}, null);
+
+		textView.setText(charSequence);
+		textView.setMovementMethod(LinkMovementMethod.getInstance());//之哟啊你使用了<a>标签，就需要设置MovementMethod对象，否则<a>标签除了显示效果，并不起任何作用
+
+	}
+}
+1.3点击链接弹出自定义Activity
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		TextView textView1 = (TextView) findViewById(R.id.textview1);
+		TextView textView2 = (TextView) findViewById(R.id.textview2);
+
+		String text1 = "显示Activity1";
+		String text2 = "显示Activity2";
+
+        //将文本转换成SpanableString对象
+		SpannableString spannableString1 = new SpannableString(text1);
+		SpannableString spannableString2 = new SpannableString(text2);
+        //将text1中所有文本设置成ClickableSpan对象，并实现onClick方法
+		spannableString1.setSpan(new ClickableSpan()
+		{
+
+			@Override
+			public void onClick(View widget)
+			{
+				Intent intent = new Intent(Main.this, Activity1.class);
+				startActivity(intent);
+
+			}
+		}, 0, text1.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+		spannableString2.setSpan(new ClickableSpan()
+		{
+
+			@Override
+			public void onClick(View widget)
+			{
+				Intent intent = new Intent(Main.this, Activity2.class);
+				startActivity(intent);
+
+			}
+		}, 0, text1.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+		textView1.setText(spannableString1);
+		textView2.setText(spannableString2);
+		//以下设置必须有
+		textView1.setMovementMethod(LinkMovementMethod.getInstance());
+		textView2.setMovementMethod(LinkMovementMethod.getInstance());
+
+	}
+}
+
+1.4为指定文本添加背景
+public class Main extends Activity
+{
+
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		TextView textview = (TextView) findViewById(R.id.textview);
+		String text = "<没有背景><黄色背景>\n\n<蓝色背景，红色文字>";
+		SpannableString spannableString = new SpannableString(text);
+
+		int start = 6;
+		int end = 12;
+
+		BackgroundColorSpan backgroundColorSpan = new BackgroundColorSpan(
+				Color.YELLOW);
+		spannableString.setSpan(backgroundColorSpan, start, end,
+				Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        //每一个“/n”算一个长度
+		start = 14;
+		ColorSpan colorSpan = new ColorSpan(Color.RED, Color.BLUE);
+		spannableString.setSpan(colorSpan, start, text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+		textview.setText(spannableString);
+
+	}
+}
+
+自定义Span类，使能同时设置文字颜色和背景颜色：
+public class ColorSpan extends CharacterStyle
+{
+	private int mTextColor;
+	private int mBackgroundColor;
+	public ColorSpan(int textColor, int backgroundColor)
+	{
+		mTextColor = textColor;
+		mBackgroundColor = backgroundColor;
+	}
+	@Override
+	public void updateDrawState(TextPaint tp)
+	{
+		tp.bgColor = mBackgroundColor;
+		tp.setColor(mTextColor);
+
+	}
+
+}
+
+1.6,在xml布局文件中设置显示效果
+资源文件strings.xml:
+<string name="link_text">
+    <a href="tel:12345678">打电话</a>
+</string>
+布局文件：
+<TextView android:id="@+id/textview" android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:textSize="20sp" android:text="@string/link_text" />
+备注：这里不用设置android:autoLink属性，单击链接会弹出拨打电话的界面
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

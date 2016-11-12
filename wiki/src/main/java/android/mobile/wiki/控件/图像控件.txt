@@ -1,0 +1,170 @@
+1.1 基本用法
+public class Main extends Activity
+{
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		ImageView imageView = (ImageView) findViewById(R.id.imageview);
+		imageView.setLayoutParams(new LinearLayout.LayoutParams(200, 100));
+		setTitle("height:" + imageView.getLayoutParams().width + "  height:"
+				+ imageView.getLayoutParams().height);
+
+	}
+
+}
+1.2 显示指定的区域
+public class Main extends Activity implements OnTouchListener
+{
+	private ImageView imageView1;
+	private ImageView imageView2;
+
+	@Override
+	public boolean onTouch(View view, MotionEvent event)
+	{
+		try
+		{
+			BitmapDrawable bitmapDrawable = (BitmapDrawable) imageView1
+					.getDrawable();
+			//原图像高度除以ImageView控件的高度
+			float scale = (float)bitmapDrawable.getBitmap().getHeight()/imageView1.getMeasuredHeight();
+			//将当前单击的横坐标换算成源图像的横坐标
+			int x = (int) (event.getX() * scale);
+			//将当前单击的纵坐标换算成原图像的纵坐标
+			int y = (int) (event.getY() * scale);
+			//将要截取的宽度换算成原图像的宽度
+			int width = (int)(100 * scale);
+			//将呀哦截取的高度换算成原图像的高度
+			int height = (int)(100 * scale);
+            //从源图像截取退昂区域
+			imageView2.setImageBitmap(Bitmap.createBitmap(
+					bitmapDrawable.getBitmap(), x, y, width, height));
+
+
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+		}
+		return false;
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		imageView1 = (ImageView) findViewById(R.id.imageview1);
+		imageView2 = (ImageView) findViewById(R.id.imageview2);
+		imageView1.setOnTouchListener(this);
+
+	}
+}
+
+1.3装载大图像
+
+Options options = new Options();
+options.inSampleSize = 4;
+Bitmap bitmap = BitmapFactory.decodeFile("sdcard/adb.jpg", options);
+
+1.4缩放和旋转图像
+
+public class Main extends Activity implements OnSeekBarChangeListener
+{
+	private int minWidth = 80;
+	private ImageView imageView;
+	private TextView textView1, textView2;
+	private Matrix matrix = new Matrix();
+
+	@Override
+	public void onProgressChanged(SeekBar seekBar, int progress,
+			boolean fromUser)
+	{
+		if (seekBar.getId() == R.id.seekBar1)//图像缩放
+		{
+			int newWidth = progress + minWidth;
+			int newHeight = (int) (newWidth * 3 / 4);
+			imageView.setLayoutParams(new LinearLayout.LayoutParams(newWidth,newHeight));
+			textView1.setText("图像宽度" + newWidth + "图像高度" + newHeight);
+		}
+		else if (seekBar.getId() == R.id.seekBar2)//图像旋转
+		{
+
+			Bitmap bitmap = ((BitmapDrawable) getResources().getDrawable(R.drawable.dog)).getBitmap();
+			matrix.setRotate(progress);//设置旋转角度
+			bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+					bitmap.getHeight(), matrix, true);
+			imageView.setImageBitmap(bitmap);
+			textView2.setText(progress + "度");
+		}
+
+	}
+
+	@Override
+	public void onStartTrackingTouch(SeekBar seekBar)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onStopTrackingTouch(SeekBar seekBar)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		imageView = (ImageView) findViewById(R.id.imageView);
+		SeekBar seekBar1 = (SeekBar) findViewById(R.id.seekBar1);
+		SeekBar seekBar2 = (SeekBar) findViewById(R.id.seekBar2);
+		textView1 = (TextView) findViewById(R.id.textview1);
+		textView2 = (TextView) findViewById(R.id.textview2);
+		seekBar1.setOnSeekBarChangeListener(this);
+		seekBar2.setOnSeekBarChangeListener(this);
+		DisplayMetrics dm = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(dm);
+		seekBar1.setMax(dm.widthPixels - minWidth);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,91 @@
+
+1.1输入时间及日期
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<DatePicker android:id="@+id/datepicker"
+		android:layout_width="fill_parent" android:layout_height="wrap_content" />
+	<TimePicker android:id="@+id/timepicker"
+		android:layout_width="fill_parent" android:layout_height="wrap_content" />
+	<TextView android:id="@+id/textview" android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:textSize="18dp" />
+</LinearLayout>
+
+public class Main extends Activity implements OnDateChangedListener,
+		OnTimeChangedListener
+{
+	private TextView textView;
+	private DatePicker datePicker;
+	private TimePicker timePicker;
+
+	@Override
+	public void onTimeChanged(TimePicker view, int hourOfDay, int minute)
+	{
+		onDateChanged(null, 0, 0, 0);
+	}
+
+	@Override
+	public void onDateChanged(DatePicker view, int year, int monthOfYear,
+			int dayOfMonth)
+	{
+		Calendar calendar = Calendar.getInstance();
+
+		calendar.set(datePicker.getYear(), datePicker.getMonth(),
+				datePicker.getDayOfMonth(), timePicker.getCurrentHour(),
+				timePicker.getCurrentMinute());
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日   HH:mm");
+		textView.setText(sdf.format(calendar.getTime()));
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		datePicker = (DatePicker) findViewById(R.id.datepicker);
+		timePicker = (TimePicker) findViewById(R.id.timepicker);
+		datePicker.init(2001, 1, 25, this);
+		timePicker.setIs24HourView(true);
+		timePicker.setOnTimeChangedListener(this);
+		textView = (TextView) findViewById(R.id.textview);
+		onDateChanged(null, 0, 0, 0);
+
+	}
+}
+
+1.2 显示时钟的控件
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent" android:gravity="center_horizontal">
+	<AnalogClock android:layout_width="fill_parent"
+		android:layout_height="wrap_content" />
+	<DigitalClock android:layout_width="wrap_content"
+		android:layout_height="wrap_content" android:textSize="18dp" />
+</LinearLayout>
+
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
