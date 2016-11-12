@@ -1,0 +1,123 @@
+/*
+*1.在对话框中显示普通列表
+*/
+//定义要显示在列表中的字符串数组
+String[] provinces = new String[]{"辽宁省", "山东省", "河北省", "福建省", "广东省", "黑龙江省"};
+
+new AlertDialog.Builder(this).setTitle("选择省份")
+	.setItems(provinces, new DialogInterface.OnClickListener()
+		{
+			@Override
+			public void onClick(DialogInterface dialog, int which)
+			{
+				new AlertDialog.Builder(Main.this).setMessage("您已经选择了：" + which + " : " + provinces[which]).show();
+			}
+		}
+	).show();
+
+
+/*
+*2.在对话框中显示显示单选按钮的列表
+*/
+String[] provinces = new String[]{"辽宁省", "山东省", "河北省", "福建省", "广东省", "黑龙江省"};
+
+new AlertDialog.Builder(this).setTitle("选择省份")
+	.setSingleChoiceItems(provinces, -1, new OnClickListener()
+		{
+			@Override
+			public void onClick(DialogInterface dailog, int which)
+			{
+				//index是一个int类型的类变量，保存当前选中的列表项索引
+				index =  which;
+			}
+		}).setPositiveButton("关闭", new OnClickListener()
+			{
+				@Override
+				public void onClick(DialogInterface dialog, int which)
+				{
+					new AlertDialog.Builder(Main.this).setMessage("您已经选择了：" + index + ":" + provinces[index]).show();
+				}
+			}).show();
+
+
+
+/*
+*3.在对话框中显示显示多选按钮的列表
+*/
+String[] provinces = new String[]{"辽宁省", "山东省", "河北省", "福建省", "广东省", "黑龙江省"};
+ListView lv;
+AlertDialog ad = new AlertDialog.Builder(this)
+					.setIcon(R.drawable.image)
+					.setTitle("选择省份")
+					.setMultiChoiceItems(provinces, new boolean[]{false, true, false, true, false, false}, new DialogInterface.OnMultiChoiceClickListener()
+					{
+						@Override
+						public void onClick(DialogInterface dialog,  int whichButton, boolean isChecked)
+						{
+
+						}
+					})
+					.setPositiveButton("确定", new DialogInterface.OnClickListener()
+					{
+						@Override
+						public void onClick(DialogInterface dialog, int whcihButton)
+						{
+							int count = lv.getCount();
+							String s = "您选择了：";
+							for(int i = 0; i < provinces.length; i++)
+							{
+								if(lv.getCheckedItemPositions().get(i))
+								{
+									s += i + ":" + lv.getAdapter().getItem(i) + " ";
+								}
+							}
+
+							if(lv.getCheckedItemPositions().size() > 0)
+							{
+								new AlertDialog.Builder(Main.this).setMessage(s).show();
+							}
+							else
+							{
+								new AlertDialog.Builder(Main.this).setMessage("您未选择任何省份").show();
+							}
+						}
+					})
+					.setNegativeButton("取消", null).create();
+
+					lv = ad.getListView();
+					ad.show();
+
+
+4.进度条对话框
+ProgressDialog progressDialog = new ProgressDialog(this);
+progressDialog.setIcon(R.drawable.wait);
+progressDialog.setTitle("正在处理数据...");
+progressDialog.setMessage("请稍后...");
+//设置进度条对话框的风格（进度条对话框）
+progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+//设置进度条对话框的进度最大值
+progressDialog.setMax(100);
+progressDialog.setProgress(20);
+progressDialog.setButton("暂停", new DialogInterface.OnClicklistener()
+	{
+		@Override
+		public void onClick(DialogInterface dialog, int whichButton)
+		{
+			//处理代码
+		}
+	});
+progressDialog.setButton2("取消", new DialogInterface.OnClicklistener()
+	{
+		@Override
+		public void onClick(DialogInterface dialog, int whichButton)
+		{
+			//处理代码
+		}
+	});
+
+progressDialog.show();
+
+
+//注：如果想将进度条样式改成圆形，可以将setProgressStyle方法参数改成ProgressDilog.STYLE_SPINNER，
+//但要注意，圆形进度条只是一个不断旋转的动画，并没有实际的进度，一般会被用在无法准确获取进度的情况下
+//因此，setMax和setProgress方法对于圆形进度条并没有任何意义

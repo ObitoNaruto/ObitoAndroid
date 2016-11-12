@@ -1,0 +1,161 @@
+1.Toast
+//代码一：
+Toast textToast = Toast.makeText(this, "我的信息", Toast.LENG_LONG);
+textToast.setText("谁的信息");
+textToast.show();
+
+
+
+//代码二：
+View view = getLayoutInflater().inflate(R.layout.dialog, null);
+Toast toast = new Toast(this);
+toast.setView(view);
+toast.show();
+
+
+//注：使用Toast.makeText方法创建Toast对象时，会创建一个带有TextView的View对象
+//通过new出来的Toast对象不会自动创建TextView的view对象
+
+2.Notification
+2.1Notification基本用法
+public class Main extends Activity
+{
+	private NotificationManager mNotificationManager;
+
+    //最普通的Notification，只包含标题，正文内容和左侧的一个图标
+	public void onClick_ShowCommonNotification(View view)
+	{
+		Notification.Builder builder = new Notification.Builder(this)
+				.setSmallIcon(R.drawable.smile).setContentTitle("笑脸通知")
+				.setContentText("图标显示在左侧");
+		mNotificationManager.notify(1, builder.build());
+	}
+    //Notification包含标题、正文内容、大图标和小图标
+	public void onClick_ShowBigIconNotification(View view)
+	{
+		Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
+				R.drawable.smile);
+		//设置大图标和小图标
+		Notification.Builder builder = new Notification.Builder(this)
+				.setSmallIcon(R.drawable.why).setLargeIcon(bitmap)
+				.setContentTitle("大图标笑脸").setContentText("大图标放在左侧，小图标房子啊右下角");
+
+		mNotificationManager.notify(2, builder.build());
+
+	}
+    //Notification可以显示任意尺寸的图像，但会受到手机本身硬件和android系统的限制
+	public void onClick_ShowBigPictureNotification(View view)
+	{
+		// 必须先清除大图Notification，否则再次显示时抛出异常，cancel方法的参数表示清除的Notification的Id
+		mNotificationManager.cancel(3);
+		Bitmap bitmap = BitmapFactory.decodeResource(getResources(),
+				R.drawable.big);
+        //调用bigPicture设置大图
+		Notification notification = new Notification.BigPictureStyle(
+				new Notification.Builder(this).setContentTitle("Big Picture")
+						.setContentText("大图").setSmallIcon(R.drawable.wrath))
+				.bigPicture(bitmap).build();
+
+		mNotificationManager.notify(3, notification);
+
+	}
+    //Notification右下角可以显示数字或者信息
+	public void onClick_ShowInfoNotification(View view)
+	{
+		Notification.Builder builder1 = new Notification.Builder(this)
+				.setSmallIcon(R.drawable.why).setContentTitle("Info")
+				.setContentText("文本信息显示在右下角").setContentInfo("信息");
+
+		mNotificationManager.notify(4, builder1.build());
+
+		// 显示数字
+		Notification.Builder builder2 = new Notification.Builder(this)
+				.setSmallIcon(R.drawable.wrath).setContentTitle("Number")
+				.setContentText("数字显示在右下角").setNumber(25);
+		mNotificationManager.notify(5, builder2.build());
+
+	}
+    //Notification显示进度条
+	public void onClick_ShowProgressNotification(View view)
+	{
+		//确定进度的：setProgress中第三个参数必须是false
+		Notification.Builder builder1 = new Notification.Builder(this)
+				.setSmallIcon(R.drawable.smile).setContentTitle("Determinate Progress")
+				.setContentText("显示进度条").setProgress(100, 25, false);
+		mNotificationManager.notify(6, builder1.build());
+		//不确定进度的，setProgress其第三个参数必须是true
+		Notification.Builder builder2 = new Notification.Builder(this)
+		.setSmallIcon(R.drawable.why).setContentTitle("Indeterminate Progress")
+		.setContentText("未显示进度的").setProgress(100, 25, true);
+		mNotificationManager.notify(7, builder2.build());
+	}
+	//清除所有的Notification
+    public void onClick_ClearAllNotification(View view)
+    {
+    	mNotificationManager.cancelAll();
+    }
+    //永久存在的Notification
+    public void onClick_ShowNotification(View view)
+    	{
+    	   //通过设置setOngoing实现
+            Notification.Builder builder = new Notification.Builder(this)
+            .setSmallIcon(R.drawable.smile).setContentTitle("哈哈哈哈").setOngoing(true)
+            .setContentText("啦啦啦啦");
+            mNotificationManager.notify(1, builder.build());
+    	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+	}
+}
+2.2 自定义Notification
+public class Main extends Activity
+{
+	private NotificationManager mNotificationManager;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+	}
+
+	public void onClick_ShowNotification(View view)
+	{
+
+		RemoteViews remoteViews = new RemoteViews(getPackageName(),
+				R.layout.notification);
+		remoteViews.setTextViewText(R.id.textview, "更新自定义内容");
+
+		Notification.Builder builder = new Notification.Builder(this)
+				.setSmallIcon(R.drawable.smile).setContent(remoteViews);
+
+		mNotificationManager.notify(1, builder.build());
+
+	}
+}
+
+备注：
+
+//自定义Notification只支持如下的可视组件
+
+//布局
+FrameLayout
+LinearLayout
+RelativeLayout
+
+
+组件
+AnalogClock
+Button
+Chronometer
+ImageButton
+ImageView
+ProgressBar
+TextView
+
