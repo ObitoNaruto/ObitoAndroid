@@ -1,0 +1,387 @@
+1.获取联系人信息
+public class Main extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		ListView listView = (ListView) findViewById(R.id.listview);
+		Cursor cursor = getContentResolver().query(
+				ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_list_item_1, cursor, new String[]
+				{ ContactsContract.Contacts.DISPLAY_NAME }, new int[]
+				{ android.R.id.text1 });
+
+		listView.setAdapter(simpleCursorAdapter);
+	}
+}
+备注：需要权限<uses-permission android:name="android.permission.READ_CONTACTS" />
+
+2.查看收件箱的短信
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		ListView lvShortMessages = (ListView) findViewById(R.id.lvShortMessages);
+
+		Cursor cursor = getContentResolver().query(
+				Uri.parse("content://sms/inbox"), null, "address like ?", new String[]
+				{ "1%" }, null);
+
+		SMSAdapter smsAdapter = new SMSAdapter(this, cursor);
+		lvShortMessages.setAdapter(smsAdapter);
+
+	}
+}
+
+public class SMSAdapter extends CursorAdapter
+{
+	private LayoutInflater layoutInflater;
+
+	public SMSAdapter(Context context, Cursor cursor)
+	{
+		super(context, cursor);
+
+		layoutInflater = (LayoutInflater) context
+				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+	}
+
+	@Override
+	public View newView(Context context, Cursor cursor, ViewGroup parent)
+	{
+		View view = layoutInflater.inflate(R.layout.item, null);
+		return view;
+	}
+
+	@Override
+	public void bindView(View view, Context context, Cursor cursor)
+	{
+		TextView tvPhoneNumber = (TextView) view
+				.findViewById(R.id.tvPhoneNumber);
+		TextView tvContent = (TextView) view.findViewById(R.id.tvContent);
+
+		tvPhoneNumber
+				.setText(cursor.getString(cursor.getColumnIndex("address")));
+		tvContent.setText(cursor.getString(cursor.getColumnIndex("body")));
+	}
+
+}
+备注：<uses-permission android:name="android.permission.READ_SMS" />
+如果查询所有短信：content://sms
+
+3.自定义Content Provider
+3.1创建Content Provider
+public class RegionContentProvider extends ContentProvider
+{
+	private static UriMatcher uriMatcher;
+	private static final String AUTHORITY = "mobile.android.regioncontentprovider";//定义AUTHORITY
+	//下面是4个Uri代码，需要与4个Uri对ing
+	private static final int CITIES = 1;
+	private static final int CITY_CODE = 2;
+	private static final int CITY_NAME = 3;
+	private static final int CITIES_IN_PROVINCE = 4;
+	private SQLiteDatabase database;
+
+	static
+	{
+        //开始隐射Uri和Uri代码
+		uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+		uriMatcher.addURI(AUTHORITY, "cities", CITIES);//用于查询所有城市的Uri
+		uriMatcher.addURI(AUTHORITY, "code/#", CITY_CODE);//用于根据城市代码查询城市信息的Uri，"#"表示任意数字
+		uriMatcher.addURI(AUTHORITY, "name/*", CITY_NAME);//用于根据城市名查询城市信息的Uri，"#"表示任意数字
+		uriMatcher.addURI(AUTHORITY, "cities_in_province/*", CITIES_IN_PROVINCE);//用于根据省名查询省内所欲城市的信息
+
+	}
+    //将assets目录中的数据库文件复制到SD卡的根目录，然后打开该数据库
+	private SQLiteDatabase openDatabase()
+	{
+		try
+		{
+			String databaseFilename = "/sdcard/region.db";
+			if (!(new File(databaseFilename)).exists())
+			{
+				InputStream is = getContext().getResources().getAssets()
+						.open("region.db");
+				FileOutputStream fos = new FileOutputStream(databaseFilename);
+				byte[] buffer = new byte[8192];
+				int count = 0;
+				while ((count = is.read(buffer)) > 0)
+				{
+					fos.write(buffer, 0, count);
+				}
+
+				fos.close();
+				is.close();
+			}
+			SQLiteDatabase database = SQLiteDatabase.openOrCreateDatabase(
+					databaseFilename, null);
+			return database;
+		}
+		catch (Exception e)
+		{
+			Log.d("error", e.getMessage());
+		}
+		return null;
+	}
+
+	@Override
+	public boolean onCreate()
+	{
+		database = openDatabase();//在创建Content Provider时打开数据库
+		return true;
+	}
+
+	@Override
+	public Cursor query(Uri uri, String[] projection, String selection,
+			String[] selectionArgs, String sortOrder)
+	{
+		Cursor cursor = null;
+
+		switch (uriMatcher.match(uri))
+		{
+			case CITIES:
+
+				cursor = database.query("v_cities_province", projection,
+						selection, selectionArgs, null, null, sortOrder);
+				break;
+			case CITY_CODE:
+				String cityCode = uri.getPathSegments().get(1);
+				if (selection == null)
+					selection = "city_code='" + cityCode + "'";
+				else
+					selection += " and (city_code='" + cityCode + "')";
+				cursor = database.query("t_cities", projection, selection,
+						selectionArgs, null, null, sortOrder);
+
+				break;
+			case CITY_NAME:
+				String cityName = uri.getPathSegments().get(1);
+				if (selection == null)
+					selection = "city_name='" + cityName + "'";
+				else
+					selection += " and (city_name='" + cityName + "')";
+				cursor = database.query("t_cities", projection, selection,
+						selectionArgs, null, null, sortOrder);
+
+				break;
+			case CITIES_IN_PROVINCE:
+				String provinceName = uri.getPathSegments().get(1);
+				if (selection == null)
+					selection = "province_name='" + provinceName + "'";
+				else
+					selection += " and (province_name='" + provinceName + "')";
+				cursor = database.query("v_cities_province", projection, selection,
+						selectionArgs, null, null, sortOrder);
+				break;
+
+			default:
+				throw new IllegalArgumentException("<" + uri + ">¸ñÊ½²»ÕýÈ·.");
+		}
+		return cursor;
+
+	}
+
+	@Override
+	public String getType(Uri uri)
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Uri insert(Uri uri, ContentValues values)
+	{
+		// TODO Auto-generated method stub
+		return null;//不允许插入数据，所以空实现
+	}
+
+	@Override
+	public int delete(Uri uri, String selection, String[] selectionArgs)
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int update(Uri uri, ContentValues values, String selection,
+			String[] selectionArgs)
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+}
+
+注册：<provider android:name="RegionContentProvider"
+   			android:authorities="mobile.android.regioncontentprovider" />
+
+
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+3.2 获取自定义的Provider使用
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+
+	public void onClick_Show_Cities(View view)
+	{
+		ContentResolver contentResolver = getContentResolver();
+		Uri uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/cities");
+		Cursor cursor = contentResolver.query(uri, new String[]
+		{ "city_code as _id", "city_name", "province_code" }, null, null, null);
+
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_list_item_1, cursor, new String[]
+				{ "city_name" }, new int[]
+				{ android.R.id.text1 });
+
+		ListView lvCities = (ListView) findViewById(R.id.lvCities);
+		lvCities.setAdapter(simpleCursorAdapter);
+
+		uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/code/024");
+		cursor = contentResolver.query(uri, null, null, null, null);
+		if (cursor.moveToFirst())
+		{
+			Toast.makeText(public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+
+	public void onClick_Show_Cities(View view)
+	{
+		ContentResolver contentResolver = getContentResolver();
+		Uri uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/cities");
+		Cursor cursor = contentResolver.query(uri, new String[]
+		{ "city_code as _id", "city_name", "province_code" }, null, null, null);
+
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_list_item_1, cursor, new String[]
+				{ "city_name" }, new int[]
+				{ android.R.id.text1 });
+
+		ListView lvCities = (ListView) findViewById(R.id.lvCities);
+		lvCities.setAdapter(simpleCursorAdapter);
+
+		uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/code/024");
+		cursor = contentResolver.query(uri, null, null, null, null);
+		if (cursor.moveToFirst())
+		{
+			Toast.makeText(
+					this,
+					"024£º"
+							+ cursor.getString(cursor
+									.getColumnIndex("city_name")),
+					Toast.LENGTH_LONG).show();
+		}
+
+		uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/name/ÉòÑô");
+		cursor = contentResolver.query(uri, null, null, null, null);
+		if (cursor.moveToFirst())
+		{
+			Toast.makeText(
+					this,
+					"ÉòÑô£º"
+							+ cursor.getString(cursor
+									.getColumnIndex("city_code")),
+					Toast.LENGTH_LONG).show();
+		}
+	}
+
+	public void onClick_Show_Lining_Cities(View view)
+	{
+		ContentResolver contentResolver = getContentResolver();
+		Uri uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/cities_in_province/ÁÉÄþ");
+		Cursor cursor = contentResolver.query(uri, new String[]
+		{ "city_code as _id", "city_name", "province_code" }, null, null,
+				"city_code");
+
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_list_item_1, cursor, new String[]
+				{ "city_name" }, new int[]
+				{ android.R.id.text1 });
+
+		ListView lvCities = (ListView) findViewById(R.id.lvCities);
+		lvCities.setAdapter(simpleCursorAdapter);
+	}
+}
+					this,
+					"024£º"
+							+ cursor.getString(cursor
+									.getColumnIndex("city_name")),
+					Toast.LENGTH_LONG).show();
+		}
+
+		uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/name/ÉòÑô");
+		cursor = contentResolver.query(uri, null, null, null, null);
+		if (cursor.moveToFirst())
+		{
+			Toast.makeText(
+					this,
+					"ÉòÑô£º"
+							+ cursor.getString(cursor
+									.getColumnIndex("city_code")),
+					Toast.LENGTH_LONG).show();
+		}
+	}
+
+	public void onClick_Show_Lining_Cities(View view)
+	{
+		ContentResolver contentResolver = getContentResolver();
+		Uri uri = Uri
+				.parse("content://mobile.android.regioncontentprovider/cities_in_province/ÁÉÄþ");
+		Cursor cursor = contentResolver.query(uri, new String[]
+		{ "city_code as _id", "city_name", "province_code" }, null, null,
+				"city_code");
+
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_list_item_1, cursor, new String[]
+				{ "city_name" }, new int[]
+				{ android.R.id.text1 });
+
+		ListView lvCities = (ListView) findViewById(R.id.lvCities);
+		lvCities.setAdapter(simpleCursorAdapter);
+	}
+}
+
+4.为ContentResolver添加权限
+4.1定义
+<permission
+		android:name="mobile.android.permission.regioncontentprovider.READ_REGION"
+		android:protectionLevel="normal" android:label="@string/label"
+		android:description="@string/description" />
+
+<provider android:name="RegionContentProvider"
+			android:authorities="mobile.android.permission.regioncontentprovider"
+			android:readPermission="mobile.android.permission.regioncontentprovider.READ_REGION" />
+
+4.2使用
+<uses-permission android:name="mobile.android.permission.regioncontentprovider.READ_REGION" />
+
+
+
+
