@@ -1,0 +1,222 @@
+1.单秒循环的定时器Chronometer
+public class Main extends Activity implements OnClickListener,
+		OnChronometerTickListener
+{
+	private Chronometer chronometer;
+	private TextView tvTime;
+
+
+	@Override
+	protected void onRestoreInstanceState(Bundle savedInstanceState)
+	{
+		super.onRestoreInstanceState(savedInstanceState);
+	}
+
+	@Override
+	protected void onSaveInstanceState(Bundle outState)
+	{
+		// TODO Auto-generated method stub
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		// TODO Auto-generated method stub
+		super.onConfigurationChanged(newConfig);
+	}
+
+	@Override
+	public Object onRetainNonConfigurationInstance()
+	{
+		// TODO Auto-generated method stub
+		return super.onRetainNonConfigurationInstance();
+	}
+
+	@Override
+	public void onClick(View view)
+	{
+		switch (view.getId())
+		{
+			case R.id.btnStart: //开始计时器
+				chronometer.start();
+				break;
+			case R.id.btnStop://停止计时器
+				chronometer.stop();
+				break;
+			case R.id.btnReset://重置计时器
+				chronometer.setBase(SystemClock.elapsedRealtime());
+
+				break;
+		}
+	}
+
+	@Override
+	public void onChronometerTick(Chronometer chronometer)
+	{
+
+		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+
+		tvTime.setText("当前时间" + sdf.format(new Date()));
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		tvTime = (TextView)findViewById(R.id.tvTime);
+		Button btnStart = (Button) findViewById(R.id.btnStart);
+		Button btnStop = (Button) findViewById(R.id.btnStop);
+		Button btnReset = (Button) findViewById(R.id.btnReset);
+		chronometer = (Chronometer) findViewById(R.id.chronometer);
+		btnStart.setOnClickListener(this);
+		btnStop.setOnClickListener(this);
+		btnReset.setOnClickListener(this);
+
+		chronometer.setOnChronometerTickListener(this);//设置及时死去监听
+		chronometer.setFormat("计时器：%s");//设置计时信息的格式
+
+	}
+}
+2.任意时间间隔的定时器：Timer
+2.1设置在5秒后执行
+Timer timer = new Timer();
+timer.schedule(new TimerTask(){
+    @Override
+    public void run(){
+
+    }
+}, 5000);//最后一个参数表示运行的时间间隔
+2.2 每2秒执行一次
+Timer timer = new Timer();
+timer.schedule(new TimerTask(){
+    @Override
+        public void run(){
+
+        }
+}, 0, 2000);/第2个参数表示延迟执行的时间，0表示立即执行；第3个参数表示重复执行的时间间隔
+
+2.3 示例
+public class Main extends Activity
+{
+
+	private ProgressBar progressBar;
+
+	private Handler handler = new Handler()
+	{
+
+		public void handleMessage(Message msg)
+		{
+			switch (msg.what)
+			{
+				case 1:
+					int currentProgress = progressBar.getProgress() + 2;
+					if (currentProgress > progressBar.getMax())
+						currentProgress = 0;
+					progressBar.setProgress(currentProgress);
+					break;
+			}
+			super.handleMessage(msg);
+		}
+
+	};
+	private TimerTask timerTask = new TimerTask()
+	{
+
+		public void run()
+		{
+			Message message = new Message();
+			message.what = 1;
+			handler.sendMessage(message);
+		}
+
+	};
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		progressBar = (ProgressBar) findViewById(R.id.progressbar);
+		Timer timer = new Timer();
+		timer.schedule(timerTask, 0, 500);
+
+
+
+	}
+}
+
+3.全局定时器
+public class Main extends Activity implements OnClickListener
+{
+	private AlarmManager alarmManager;
+
+	@Override
+	public void onClick(View view)
+	{
+		Intent intent = null;
+		PendingIntent pendingActivityIntent;
+
+		switch (view.getId())
+		{
+			case R.id.btnShowActivity:
+				intent = new Intent(this, MyActivity.class);
+				pendingActivityIntent = PendingIntent.getActivity(this, 0,
+						intent, 0);
+			    //设置定时（5秒）显示Activity
+				alarmManager.setRepeating(AlarmManager.RTC, 0, 5000,
+						pendingActivityIntent);
+				break;
+			case R.id.btnStopActivity:
+				intent = new Intent(this, MyActivity.class);
+				pendingActivityIntent = PendingIntent.getActivity(this, 0,
+						intent, 0);
+				alarmManager.cancel(pendingActivityIntent);//取消定时
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+		Button btnShowActivity = (Button) findViewById(R.id.btnShowActivity);
+		Button btnStopActivity = (Button)findViewById(R.id.btnStopActivity);
+		btnShowActivity.setOnClickListener(this);
+		btnStopActivity.setOnClickListener(this);
+
+
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
