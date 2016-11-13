@@ -1,0 +1,209 @@
+1.布局文件
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <FrameLayout  android:id="@+id/framelayout_dragdrop_region"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:background="#F00"  />
+
+    <ImageView
+        android:id="@+id/imageview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="50dp"
+        android:src="@drawable/ic_launcher" />
+
+
+</LinearLayout>
+
+2.定制拖动阴影类
+public class MyDragShadowBuilder extends View.DragShadowBuilder
+{
+
+	private static Drawable shadow;//拖动阴影的区域
+	private static Bitmap newBitmap;//存储新绘制的拖动阴影图像
+
+	public MyDragShadowBuilder(View v)//v参数可以是任何view对象，在本例中是被拖动的ImageView对象
+	{
+
+		super(v);
+
+		shadow = new ColorDrawable(Color.LTGRAY);
+	}
+
+    //在该方法中绘制拖动阴影图像，也就是实例化newBitmap
+	@Override
+	public void onProvideShadowMetrics(Point size, Point touch)
+	{
+
+		int width, height;
+        //拖动阴影的宽度和高度，比被拖动图像宽度和高度大于50%
+		width = (int) (getView().getWidth() * 1.5);
+		height = (int) (getView().getHeight() * 1.5);
+        //设置拖动阴影图像绘制的和区域
+		shadow.setBounds(0, 0, width, height);
+        //设置推动阴影图像的宽度和高度
+		size.set(width, height);
+        //设置手指或鼠标在拖动阴影图像的位置，本例正好在图像的中心位置
+		touch.set(width / 2, height / 2);
+
+		if (getView() instanceof ImageView)//判断传入的View对象是否未ImageView
+		{
+			ImageView imageView = (ImageView) getView();//getView方法返回的值就是构造函数传入的v参数值
+
+			Drawable drawable = imageView.getDrawable();//获取imageview控件的Drawable对象
+			Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();//获取imageView控件显示的图像资源
+            //根据拖动阴影图像的尺寸创建一个新的可绘制的Bitmap图像
+			newBitmap = Bitmap.createBitmap(width, height, Config.ARGB_8888);
+			Canvas canvas = new Canvas(newBitmap);//将Canvas和Bitmap关联
+            //将原图像绘制在画布上
+			canvas.drawBitmap(bitmap,
+					new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight()),
+					new Rect(0, 0, width, height), null);
+
+		}
+	}
+
+	@Override
+	public void onDrawShadow(Canvas canvas)
+	{
+
+		// shadow.draw(canvas);
+		canvas.drawBitmap(newBitmap, 0, 0, new Paint());//将图像正式绘制在阴影图像上
+	}
+}
+2.布局
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <FrameLayout  android:id="@+id/framelayout_dragdrop_region"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:background="#F00"  />
+
+    <ImageView
+        android:id="@+id/imageview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="50dp"
+        android:src="@drawable/ic_launcher" />
+
+
+</LinearLayout>
+3.窗口类
+public class FirstDragDropActivity extends Activity implements OnDragListener
+{
+	private FrameLayout dragdropRegion;//目标区域的视图
+	private ImageView imageview;//要拖动的视图
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_first_drag_drop);
+		dragdropRegion = (FrameLayout) findViewById(R.id.framelayout_dragdrop_region);
+		imageview = (ImageView) findViewById(R.id.imageview);
+		dragdropRegion.setOnDragListener(this);//为目标视图设置拖动监听器
+        //为要拖动的视图设置长按单击事件监听器
+		imageview.setOnLongClickListener(new View.OnLongClickListener()
+		{
+
+			public boolean onLongClick(View v)
+			{
+                //创建拖动阴影对象
+				View.DragShadowBuilder myShadow = new MyDragShadowBuilder(
+						imageview);
+                //开始拖动，startDrag第一个参数是一个ClipData类型的兑现用于传递剪切板数据，可以为null
+				v.startDrag(null, myShadow, null, 0);
+				return true;
+
+			}
+
+		});
+
+	}
+    //处理所有的拖动事件
+	@Override
+	public boolean onDrag(View view, DragEvent event)
+	{
+		int action = event.getAction();
+		switch (action)
+		{
+
+			case DragEvent.ACTION_DRAG_STARTED://开始拖动
+
+				System.out.println("drag_started");
+				break;
+			case DragEvent.ACTION_DRAG_ENTERED://进入目标区域
+				System.out.println("drag_entered");
+				break;
+			case DragEvent.ACTION_DRAG_LOCATION://在目标区域内移动
+				System.out.println("drag_location x=" + event.getX() + " y="
+						+ event.getY());
+
+				break;
+			case DragEvent.ACTION_DRAG_EXITED://离开目标区域
+				System.out.println("drag_exited");
+
+				break;
+			case DragEvent.ACTION_DROP://在目标区域放下ImageView控件
+				System.out.println("drag_drop");
+				ImageView imageView = (ImageView) getLayoutInflater().inflate(
+						R.layout.image, null);
+				LayoutParams layoutParams = new LayoutParams(
+						LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+				layoutParams.leftMargin = (int) (event.getX());
+				layoutParams.topMargin = (int) (event.getY());
+
+				dragdropRegion.addView(imageView, layoutParams);
+				break;
+			case DragEvent.ACTION_DRAG_ENDED://放下ImageView控件
+				System.out.println("drag_ended");
+
+				break;
+			default:
+				return false;
+		}
+
+		return true;
+	}
+
+}
+
+
+备注：android3.0开始支持
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
