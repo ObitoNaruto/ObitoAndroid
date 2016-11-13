@@ -1,0 +1,408 @@
+1.创建Fragment
+1.1通过xml布局文件创建
+ <fragment
+        android:id="@+id/details"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:name="mobile.android.first.fragment.RightFragment"
+        class="mobile.android.first.fragment.RightFragment" />
+
+备注：
+<fragment>标签的android:id和android:tag必须至少有一个
+android:name和class类似，只是一个有命名空间，一个没有
+1.2 代码创建
+FragmentManager fragmentManager = getFragmentManager();
+FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+UIFragment fragment = new UIFragment();
+fragmentTransaction.add(R.id.fragment_container, fragment,"ui_fragment");
+fragmentTransaction.commit();
+
+利用支持库的Fragment：
+FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+MyFragment myFragment = new MyFragment();
+transaction.add(R.id.container, myFragment);
+transaction.commit();
+
+
+2.Activity和Fragment之间的交互
+2.1通过setArguments和getArguments
+
+    public void onClick_SendData(View view)
+	{
+		MyFragment fragment = new MyFragment();
+
+		Bundle bundle = new Bundle();
+
+		bundle.putString("name", "Hello Fragment1");
+		fragment.setArguments(bundle);
+		FragmentManager fragmentManager = getFragmentManager();
+		FragmentTransaction fragmentTransaction = fragmentManager
+				.beginTransaction();
+		fragmentTransaction.add(R.id.fragment_container1, fragment, "fragment");
+
+		fragmentTransaction.commit();
+
+		Toast.makeText(this, "数据已成功传递", Toast.LENGTH_LONG).show();
+
+	}
+
+	public void onClick_ShowArgument(View view)
+	{
+		EditText editText = (EditText) findViewById(R.id.edittext);
+
+		String name = getFragmentManager().findFragmentByTag("fragment")
+				.getArguments().getString("name");
+		editText.setText(name);
+	}
+
+2.2Fragment回调机制
+
+布局文件：
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <fragment
+        android:name="mobile.android.fragment.callback.TopFragment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:tag="top_fragment"/>
+
+    <fragment
+        android:name="mobile.android.fragment.callback.BottomFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"  android:tag="bottom_fragment"/>
+
+</LinearLayout>
+
+TopFragment：
+//由于Button的单击事件方法在TopFragment中实现，所以实现了OnClickListener接口
+public class TopFragment extends Fragment implements OnClickListener
+{
+	private OnTopButtonClickedListener listener;
+	//提供回调方法的接口，通常嵌入TopFragment的窗口类会实现该接口
+	public interface OnTopButtonClickedListener
+	{
+        //回调方法，在TopFragment中会调用该方法，但该方法在窗口类中实现
+		public void onClick(String name);
+	}
+
+	@Override
+	public void onAttach(Activity activity)
+	{
+		//嵌入TopFragment的窗口类对象必须实实现OnTopButtonClickedListener接口，
+		//否则无法将窗口类对象转换成OnTopButtonClickedListener对象，也就无法调用回调方法了
+		if(getActivity() instanceof OnTopButtonClickedListener)
+		{
+			listener = (OnTopButtonClickedListener)getActivity();
+		}
+		super.onAttach(activity);
+	}
+
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState)
+	{
+		View view = inflater.inflate(R.layout.top_fragment, null);
+		view.setOnClickListener(this);//设置button的单击事件监听对象
+		return view;
+	}
+
+	public void onClick(View view)
+	{
+		if(listener != null)
+		{
+			listener.onClick("Top Fragment Demo");//回调方法
+		}
+	}
+
+}
+
+BottomFragment：
+
+public class BottomFragment extends Fragment
+{
+
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState)
+	{
+		View view = inflater
+				.inflate(R.layout.bottom_fragment, container, false);
+
+		return view;
+	}
+	//该方法用于将字符串显示在EditText中
+	public void updateText(String value)
+	{
+		EditText editText = (EditText)getView();
+		editText.setText(value);
+	}
+
+}
+
+FragmentCallbackActivity：
+//必须实现OnTopButtonClickedListener接口
+public class FragmentCallbackActivity extends Activity implements
+		OnTopButtonClickedListener
+{
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_fragment_callback);
+	}
+     //回调方法
+	@Override
+	public void onClick(String name)
+	{
+		//通过tag获取BottomFragment对象
+		BottomFragment fragment = (BottomFragment) getFragmentManager().findFragmentByTag("bottom_fragment");
+		//调用BottomFragment的updateText方法
+		fragment.updateText("onClick:" + name);
+
+	}
+
+}
+
+
+3.Fragment状态的持久化
+布局文件：
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"  >
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onClick_SetFragmentField"
+        android:text="设置Fragment中的字段" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onClick_GetFragmentFieldValue"
+        android:text="读取Fragment中的字段值"  />
+
+    <fragment
+        android:id="@+id/fragment_persistence"
+        android:name="mobile.android.fragment.persistence.MyFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</LinearLayout>
+
+FragmentPersistenceActivity：
+
+public class FragmentPersistenceActivity extends Activity
+{
+	private MyFragment fragment;//需要在onSaveInstanceState中保存fragment字段的值
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_fragment_persistence);
+		FragmentManager fragmentManager = getFragmentManager();
+		if (savedInstanceState != null)
+			fragment = (MyFragment) fragmentManager.getFragment(
+					savedInstanceState, "fragment");//恢复fragment字段的值
+		if (fragment == null)//如果状态未保存，创建新的MyFragment对象
+		{
+			fragment = (MyFragment) getFragmentManager().findFragmentById(
+					R.id.fragment_persistence);
+		}
+	}
+
+	public void onClick_SetFragmentField(View view)
+	{
+		if (fragment != null)
+		{
+			fragment.name = "name：新的字段值";
+			fragment.getArguments().putString("name", "arg：新设置的值");
+			Toast.makeText(this, "成功为name字段赋值", Toast.LENGTH_LONG).show();
+		}
+	}
+
+	public void onClick_GetFragmentFieldValue(View view)
+	{
+
+		if (fragment != null)
+		{
+			Toast.makeText(this, fragment.name, Toast.LENGTH_LONG).show();
+			Toast.makeText(this, fragment.getArguments().getString("name"),
+					Toast.LENGTH_LONG).show();
+		}
+	}
+
+
+	@Override
+	protected void onSaveInstanceState(Bundle outState)
+	{
+
+		if (fragment != null)
+		{
+			getFragmentManager().putFragment(outState, "fragment", fragment);//保存fragment字段的值，key是fragment
+		}
+
+		super.onSaveInstanceState(outState);
+	}
+
+}
+
+MyFragment：
+public class MyFragment extends Fragment
+{
+	public String name = "name£：default";//name字段需要在onSaveInstanceState方法中保存
+
+	@Override
+	public void onActivityCreated(Bundle savedInstanceState)
+	{
+		if (savedInstanceState != null)//恢复字段值
+		{
+			String s = savedInstanceState.getString("name");
+			if (s != null)
+				name = s;
+
+		}
+		super.onActivityCreated(savedInstanceState);
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle outState)
+	{
+		outState.putString("name", name);//保存name字段值
+		super.onSaveInstanceState(outState);
+	}
+
+    //onInflate方法会在MyFragment与窗口类绑定之前调用，所以可以在该方法中调用setArguments方法设置Bundle值，并设置name参数的默认值
+	@Override
+	public void onInflate(Activity activity, AttributeSet attrs,
+			Bundle savedInstanceState)
+	{
+		if (getArguments() == null)
+		{
+			Bundle bundle = new Bundle();
+			bundle.putString("name", "arg:default");
+			setArguments(bundle);
+		}
+		super.onInflate(activity, attrs, savedInstanceState);
+	}
+
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState)
+	{
+		View view = inflater.inflate(R.layout.my_fragment, container, false);
+		return view;
+	}
+
+}
+
+4.Fragment与回退栈（导航）
+//实现OnBackStackChangedListener接口监听回退栈的状态
+public class FragmentNavigationActivity extends Activity implements
+		OnBackStackChangedListener
+{
+    //创建新的FragmentPage对象，如果backStackFlag为true，会将该对象添加到回退栈中
+	private void nextFragment(boolean backStackFlag)
+	{
+		try
+		{
+			FragmentManager fragmentManager = getFragmentManager();
+
+			FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+			FragmentPage fragment = new FragmentPage();
+			fragmentTransaction.add(R.id.fragment_container, fragment);
+
+			if (backStackFlag)
+				// fragmentTransaction.addToBackStack(null);//将当前Fragment的状态添加到回退栈中
+				//  为每一个Fragment状态指定一个name，就是Fragment当前的需要
+				fragmentTransaction.addToBackStack(String.valueOf(getFragmentManager().getBackStackEntryCount() + 1));
+			fragmentTransaction.commit();
+			//指定回退栈监听器
+			fragmentManager.addOnBackStackChangedListener(this);
+
+		}
+		catch (Exception e)
+		{
+
+		}
+
+	}
+     //当回退栈状态发生变化后调用该放啊
+	@Override
+	public void onBackStackChanged()
+	{
+
+		setTitle("当前第" + (getFragmentManager().getBackStackEntryCount() + 1)
+				+ "页");
+
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_fragment_navigation);
+		//显示第1页，不将该页的fragment对象压入回退栈
+		nextFragment(false);
+		onBackStackChanged();//显示当前页的序号
+	}
+
+	public void onClick_NextPage(View view)
+	{
+		nextFragment(true);//创建新的Fragment对象，并将该对象压入回退栈
+
+	}
+
+	public void onClick_PrevPage(View view)
+	{
+		FragmentManager fragmentManager = getFragmentManager();
+		fragmentManager.popBackStack();//将栈顶的Fragment对象状态弹出，重新显示上一页
+		//将回退栈在Fragment状态全部出栈，恢复到第1页
+		//fragmentManager.popBackStackImmediate("1",FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
