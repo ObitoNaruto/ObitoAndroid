@@ -1,0 +1,585 @@
+1.ActionBar基础
+1.1显示隐藏ActionBar
+styles.xml
+<!-- Application theme. -->
+    <style name="AppTheme" parent="AppBaseTheme">
+        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+    </style>
+
+AndroidManifest.xml:
+android:theme="@style/AppTheme"
+
+	public void onClick_HideShowActionBar(View view)
+	{
+
+		if (getActionBar() == null)
+			return;
+		if (getActionBar().isShowing())
+		{
+			getActionBar().hide();//隐藏ActionBar
+		}
+		else
+		{
+			getActionBar().show();//显示ActionBar
+
+		}
+
+	}
+
+备注：如果某个窗口不想显示ActionBar，则
+(1)<activity android:theme="@android:style/Theme.Holo.NoActionBar" />
+(2)修改主题：
+<style name="AppBaseTheme" parent="android:Theme.Holo.Light.DarkActionBar">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+ </style>
+
+1.2 添加和响应Action按钮
+menu文件夹下菜单资源：
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    //显示图标和文本，只在有空余位置时才在ActionBar上显示
+    <item
+        android:id="@+id/menu_save"
+        android:icon="@drawable/save"
+        android:showAsAction="ifRoom|withText"
+        android:title="保存"/>
+    //只显示图标，只在有空余位置时才在ActionBar上显示
+    <item
+        android:id="@+id/menu_open"
+        android:icon="@drawable/open"
+        android:showAsAction="ifRoom"
+        android:title="打开"/>
+    //只显示图标，总在ActionBar上显示，除非确实没位置了
+    <item
+        android:id="@+id/menu_search"
+        android:icon="@drawable/search"
+        android:showAsAction="always"
+        android:title="保存"/>
+    //只显示图标，只在有空余位置时才在ActionBar上显示
+    <item
+        android:id="@+id/menu1"
+        android:icon="@drawable/ic_launcher"
+        android:showAsAction="ifRoom"
+        android:title="菜单项1"/>
+    //只显示图标，只在有空余位置时才在ActionBar上显示
+    <item
+        android:id="@+id/menu2"
+        android:icon="@drawable/ic_launcher"
+        android:showAsAction="ifRoom"
+        android:title="菜单项2"/>
+
+</menu>
+
+    @Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+
+
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.activity_first_action_bar, menu);
+		//menu.getItem(2).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);//代码中设置第3个菜单项永远不会显示在ActionBar上
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		Toast.makeText(this, item.getTitle(), Toast.LENGTH_LONG).show();
+		return super.onOptionsItemSelected(item);
+	}
+
+2.可上可下两分的ActionBar
+条件：需要将所有menu的item项都设置成android:showAsAction="always",然后<activity android:uiOptions="splitActionBarWhenNarrow" />,这样设置
+后一旦顶部显示不下，就会将所有的菜单项显示到底部
+
+3.应用程序图标导航
+public class MyActivity extends Activity
+{
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_my);
+		getActionBar().setHomeButtonEnabled(true);//设置系统响应程序图标的请求
+
+		getActionBar().setDisplayHomeAsUpEnabled(true);//在Actionbar左侧加一个小箭头
+
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+
+	    switch (item.getItemId()) {
+	        case android.R.id.home://回到主窗口
+	            Intent intent = new Intent(this, AppIconNavigationActivity.class);
+	            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);//加入这个标记，这样显示在主窗口之前会关闭主窗口前面所有窗口
+	            startActivity(intent);
+
+	        	return true;
+	        default:
+	            return super.onOptionsItemSelected(item);
+	    }
+	}
+}
+
+备注：
+//禁止ActionBar使用android:logo属性，系统会统一使用android:icon属性
+getActionBar().setDisplayUseLogoEnabled(false);
+//禁止显示ActionBar的标题文本
+getActionBar().setDisplayShowTitleEnabled(false);
+
+
+4.收缩和展开Action View
+
+menu资源文件：
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    //直接使用EditText类
+    <item
+        android:id="@+id/menu_item_edit"
+
+        android:actionViewClass="android.widget.EditText"
+
+        android:showAsAction="always"
+        android:title="编辑"/>
+    //
+    <item
+        android:id="@+id/menu_item_clock"
+        android:actionLayout="@layout/action_view_clock"
+        android:icon="@drawable/time"
+
+        android:showAsAction="always"
+        android:title="时间"/>
+    //允许扩展和收缩
+    <item
+        android:id="@+id/menu_item_clock"
+        android:actionLayout="@layout/action_view_clock"
+        android:icon="@drawable/time"
+
+        android:showAsAction="always|collapseActionView"
+        android:title="时间"/>
+    //允许扩展和收缩
+    <item
+        android:id="@+id/menu_item_search"
+        android:actionViewClass="android.widget.SearchView1"
+        android:icon="@drawable/search"
+
+        android:showAsAction="always|collapseActionView"
+        android:title="搜素"/>
+
+</menu>
+
+public class ActionViewActivity extends Activity implements
+		OnActionExpandListener
+{
+	private Menu menu;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_action_view);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.activity_action_view, menu);
+		this.menu = menu;
+		for(int i = 0; i < menu.size(); i++)
+		{
+			menu.getItem(i).setOnActionExpandListener(this);//为每一个菜单项设置Action view扩展和收缩监听器
+		}
+
+		return true;
+	}
+
+	public void onClick_ExpandSearchView(View view)
+	{
+		menu.findItem(R.id.menu_item_search).expandActionView();//展开SearchView
+	}
+
+	public void onClick_CollapseSearchView(View view)
+	{
+		menu.findItem(R.id.menu_item_search).collapseActionView();//收缩SearchView
+	}
+    //监听ActionView的展开动作
+	@Override
+	public boolean onMenuItemActionExpand(MenuItem item)
+	{
+		Toast.makeText(this, "<" + item.getTitle() + ">已经展开", Toast.LENGTH_LONG)
+				.show();
+
+		return true;//必须返回true，否则ActionView无法展开
+	}
+    //监听ActionView的收缩动作
+	@Override
+	public boolean onMenuItemActionCollapse(MenuItem item)
+	{
+		Toast.makeText(this, "<" + item.getTitle() + ">已经收缩", Toast.LENGTH_LONG)
+		.show();
+		return true;//必须返回true，否则ActionView无法收缩
+	}
+
+
+}
+
+5.ActionProvider
+5.1分享信息（ShareActionProvider）
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menu_share"
+        android:actionProviderClass="android.widget.ShareActionProvider"
+        android:icon="@drawable/share"
+        android:showAsAction="ifRoom"
+        android:title="分享"/>
+
+</menu>
+
+    @Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+
+		getMenuInflater().inflate(R.menu.activity_share_item, menu);
+		MenuItem shareItem = (MenuItem) menu.findItem(R.id.menu_share);
+		//获取ShareActionProvider对象
+		ShareActionProvider provider = (ShareActionProvider) shareItem
+				.getActionProvider();
+		Intent intent = new Intent(Intent.ACTION_SEND);
+		intent.setType("text/plain");
+		intent.putExtra(Intent.EXTRA_SUBJECT, "分享");
+		intent.putExtra(Intent.EXTRA_TEXT, "使用ShareActionProvider");
+		//provider.setShareHistoryFileName("share.xml");
+		provider.setShareIntent(intent);//设置过滤分享列表的Intent对象
+
+		return true;
+	}
+
+5.2定制ActionProvider
+NewCustomActionProvider：
+public class NewCustomActionProvider extends ActionProvider
+{
+    private Context mContext;
+	public NewCustomActionProvider(Context context)
+	{
+		super(context);
+		mContext = context;
+	}
+
+	@Override
+	public View onCreateActionView()
+	{
+		LayoutInflater inflater =  LayoutInflater.from(mContext);
+		View view = inflater.inflate(R.layout.new_custom_action_provider, null);
+	    ImageButton imageButton = (ImageButton)view.findViewById(R.id.imagebutton);
+	    imageButton.setOnClickListener(new OnClickListener()
+		{
+
+			@Override
+			public void onClick(View v)
+			{
+				Toast.makeText(mContext, "µã»÷Action°´Å¥", Toast.LENGTH_LONG).show();
+
+			}
+		});
+
+		return view;
+	}
+
+	@Override
+	public boolean onPerformDefaultAction()
+	{
+
+		Toast.makeText(mContext, "单击菜单项", Toast.LENGTH_LONG).show();
+		return true;
+	}
+
+
+}
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menu_provider1"
+        android:actionProviderClass="mobile.android.custom.action.provider.NewCustomActionProvider"
+        android:icon="@drawable/ic_launcher"
+        android:showAsAction="ifRoom"
+        android:title="自定义Provider"/>
+
+    <item
+        android:id="@+id/menu_provider2"
+        android:actionProviderClass="mobile.android.custom.action.provider.NewCustomActionProvider"
+        android:icon="@drawable/ic_launcher"
+        android:showAsAction="never"
+        android:title="自定义Provider"/>
+
+</menu>
+
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch (item.getItemId())
+		{
+			case R.id.menu_provider1:
+				Toast.makeText(this, "menu_provider1", Toast.LENGTH_LONG).show();
+				break;
+			case R.id.menu_provider2:
+				Toast.makeText(this, "menu_provider2", Toast.LENGTH_LONG).show();
+				return true;
+
+
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+6.导航标签
+
+public class AddNavigationTabActivity extends Activity implements
+		ActionBar.TabListener
+{
+
+	/**
+	 * The serialization (saved instance state) Bundle key representing the
+	 * current tab position.
+	 */
+	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_add_navigation_tab);
+
+		// Set up the action bar to show tabs.
+		final ActionBar actionBar = getActionBar();
+		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+
+		// For each of the sections in the app, add a tab to the action bar.
+		actionBar.addTab(actionBar.newTab().setText(R.string.title_section1)
+				.setTabListener(this));
+		actionBar.addTab(actionBar.newTab().setText(R.string.title_section2)
+				.setTabListener(this));
+		actionBar.addTab(actionBar.newTab().setText(R.string.title_section3)
+				.setTabListener(this));
+	}
+
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState)
+	{
+		// Restore the previously serialized current tab position.
+		if (savedInstanceState.containsKey(STATE_SELECTED_NAVIGATION_ITEM))
+		{
+			getActionBar().setSelectedNavigationItem(
+					savedInstanceState.getInt(STATE_SELECTED_NAVIGATION_ITEM));
+		}
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle outState)
+	{
+		// Serialize the current tab position.
+		outState.putInt(STATE_SELECTED_NAVIGATION_ITEM, getActionBar()
+				.getSelectedNavigationIndex());
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.activity_add_navigation_tab, menu);
+		return true;
+	}
+
+	@Override
+	public void onTabSelected(ActionBar.Tab tab,
+			FragmentTransaction fragmentTransaction)
+	{
+		// When the given tab is selected, show the tab contents in the
+		// container view.
+		Fragment fragment = new DummySectionFragment();
+		Bundle args = new Bundle();
+		args.putInt(DummySectionFragment.ARG_SECTION_NUMBER,
+				tab.getPosition() + 1);
+		fragment.setArguments(args);
+
+		getFragmentManager().beginTransaction()
+				.replace(R.id.container, fragment).commit();
+	}
+
+	@Override
+	public void onTabUnselected(ActionBar.Tab tab,
+			FragmentTransaction fragmentTransaction)
+	{
+	}
+
+	@Override
+	public void onTabReselected(ActionBar.Tab tab,
+			FragmentTransaction fragmentTransaction)
+	{
+	}
+
+	/**
+	 * A dummy fragment representing a section of the app, but that simply
+	 * displays dummy text.
+	 */
+	public static class DummySectionFragment extends Fragment
+	{
+		/**
+		 * The fragment argument representing the section number for this
+		 * fragment.
+		 */
+		public static final String ARG_SECTION_NUMBER = "section_number";
+
+		public DummySectionFragment()
+		{
+		}
+
+		@Override
+		public View onCreateView(LayoutInflater inflater, ViewGroup container,
+				Bundle savedInstanceState)
+		{
+			// Create a new TextView and set its text to the fragment's section
+			// number argument value.
+			TextView textView = new TextView(getActivity());
+			textView.setGravity(Gravity.CENTER);
+			textView.setText("µÚ" + Integer.toString(getArguments().getInt(
+					ARG_SECTION_NUMBER)) + "Ò³");
+			return textView;
+		}
+	}
+
+}
+
+7.下拉导航标签
+public class AddDropdownNavigationActivity extends Activity implements
+		ActionBar.OnNavigationListener
+{
+
+	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_add_dropdown_navigation);
+
+		// Set up the action bar to show a dropdown list.
+		final ActionBar actionBar = getActionBar();
+		actionBar.setDisplayShowTitleEnabled(false);
+		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+
+		// Set up the dropdown list navigation in the action bar.
+		actionBar.setListNavigationCallbacks(
+		// Specify a SpinnerAdapter to populate the dropdown list.
+				new ArrayAdapter<String>(actionBar.getThemedContext(),
+						android.R.layout.simple_list_item_1,
+						android.R.id.text1, new String[]
+						{ getString(R.string.title_section1),
+								getString(R.string.title_section2),
+								getString(R.string.title_section3), }), this);
+	}
+
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState)
+	{
+		// Restore the previously serialized current dropdown position.
+		if (savedInstanceState.containsKey(STATE_SELECTED_NAVIGATION_ITEM))
+		{
+			getActionBar().setSelectedNavigationItem(
+					savedInstanceState.getInt(STATE_SELECTED_NAVIGATION_ITEM));
+		}
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle outState)
+	{
+		// Serialize the current dropdown position.
+		outState.putInt(STATE_SELECTED_NAVIGATION_ITEM, getActionBar()
+				.getSelectedNavigationIndex());
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater()
+				.inflate(R.menu.activity_add_dropdown_navigation, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onNavigationItemSelected(int position, long id)
+	{
+		// When the given dropdown item is selected, show its contents in the
+		// container view.
+		android.app.Fragment fragment = new DummySectionFragment();
+		Bundle args = new Bundle();
+		args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, position + 1);
+		fragment.setArguments(args);
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
+		return true;
+	}
+
+	/**
+	 * A dummy fragment representing a section of the app, but that simply
+	 * displays dummy text.
+	 */
+	public static class DummySectionFragment extends Fragment
+	{
+		/**
+		 * The fragment argument representing the section number for this
+		 * fragment.
+		 */
+		public static final String ARG_SECTION_NUMBER = "section_number";
+
+		public DummySectionFragment()
+		{
+		}
+
+		@Override
+		public View onCreateView(LayoutInflater inflater, ViewGroup container,
+				Bundle savedInstanceState)
+		{
+			// Create a new TextView and set its text to the fragment's section
+			// number argument value.
+			TextView textView = new TextView(getActivity());
+			textView.setGravity(Gravity.CENTER);
+			textView.setText(Integer.toString(getArguments().getInt(
+					ARG_SECTION_NUMBER)));
+			return textView;
+		}
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
