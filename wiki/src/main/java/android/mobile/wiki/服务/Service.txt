@@ -1,0 +1,699 @@
+1.开机启动Service
+public class StartupReceiver extends BroadcastReceiver
+{
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		Intent serviceIntent = new Intent(context, MyService.class);
+		context.startService(serviceIntent);
+		Log.d("start_server", "ok");
+	}
+}
+
+public class MyService extends Service
+{
+
+	@Override
+	public IBinder onBind(Intent intent)
+	{
+		return null;
+	}
+
+	@Override
+	public void onCreate()
+	{
+		Log.d("StartUpMyService", "onCreate");
+		super.onCreate();
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		Log.d("StartUpMyService", "onDestroy");
+		super.onDestroy();
+	}
+
+	@Override
+	public void onStart(Intent intent, int startId)
+	{
+		Log.d("StartUpMyService", "onStart");
+		super.onStart(intent, startId);
+	}
+}
+
+<receiver android:name="StartupReceiver" >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+
+            </intent-filter>
+ </receiver>
+
+        <service
+            android:name=".MyService"
+            android:enabled="true"  />
+
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+
+2.跨进程访问（AIDL）
+
+2.1创建和调用AIDL服务
+
+2.1.1建立一个.aidl文件
+nterface IMyService
+{
+    String getValue();
+
+
+}
+2.1.2 定义一个Service类
+public class MyService extends Service
+{
+
+	public class MyServiceImpl extends IMyService.Stub
+	{
+
+		@Override
+		public String getValue() throws RemoteException
+		{
+			// TODO Auto-generated method stub
+			return "data data data";
+		}
+
+	}
+
+	@Override
+	public IBinder onBind(Intent intent)
+	{
+		return new MyServiceImpl();//在此必须返回MyServiceImpl对象，否则客户端无法获取该服务对象
+	}
+
+
+}
+2.1.3配置Service
+<service android:name=".MyService" >
+			<intent-filter>
+				<action android:name="mobile.android.aidl.IMyService" />
+			</intent-filter>
+</service>
+
+2.1.4调用AIDL服务
+public class Main extends Activity implements OnClickListener
+{
+	private IMyService myService = null;
+	private Button btnInvokeAIDLService;
+	private Button btnBindAIDLService;
+	private TextView textView;
+	private ServiceConnection serviceConnection = new ServiceConnection()
+	{
+
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+			myService = IMyService.Stub.asInterface(service);//获得服务对象
+			btnInvokeAIDLService.setEnabled(true);
+
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			Toast.makeText(Main.this, "test", Toast.LENGTH_SHORT).show();
+			btnInvokeAIDLService.setEnabled(true);
+		}
+	};
+
+	@Override
+	public void onClick(View view)
+	{
+		switch (view.getId())
+		{
+			case R.id.btnBindAIDLService:
+				if(!bindService(new Intent("mobile.android.aidl.IMyService"),
+						serviceConnection, Context.BIND_AUTO_CREATE))
+					Toast.makeText(Main.this, "绑定服务成功", Toast.LENGTH_SHORT).show();
+
+				break;
+
+			case R.id.btnInvokeAIDLService:
+				try
+				{
+					textView.setText(myService.getValue());//调用服务端的getValue方法
+				}
+				catch (Exception e)
+				{
+					textView.setText(e.getMessage());
+				}
+				break;
+		}
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		btnInvokeAIDLService = (Button) findViewById(R.id.btnInvokeAIDLService);
+		btnBindAIDLService = (Button) findViewById(R.id.btnBindAIDLService);
+		btnInvokeAIDLService.setEnabled(false);
+		textView = (TextView) findViewById(R.id.textview);
+		btnInvokeAIDLService.setOnClickListener(this);
+		btnBindAIDLService.setOnClickListener(this);
+	}
+}
+
+2.2传递复杂数据的AIDL服务
+2.2.1 AIDL服务支持的数据类型如下
+（1）Java的简单类型(int ,char, boolean等)，不需导入import
+(2)String和CharSequence, 不需导入import
+(3)List和Map，不需导入import
+（4）AIDL自动生成的接口，需要导入import
+（5）实现Parcelable接口，需要导入import
+
+2.2.2 建立一个IMyService.aidl文件
+import mobile.android.complex.type.aidl.Product;
+
+interface IMyService
+{
+    Map getMap(in String country, in Product product);
+    Product getProduct();
+}
+
+备注：例如List、String或者自定义的类，需要使用in和out或者inout，in表示这个值可以被客户端设置，out表示这个值可以被服务端设置,inout表示这个值可以被客户端和服务端设置
+2.2.3 编写Product类
+public class Product implements Parcelable
+{
+	private int id;
+	private String name;
+	private float price;
+	public static final Parcelable.Creator<Product> CREATOR = new Parcelable.Creator<Product>()
+	{
+		public Product createFromParcel(Parcel in)
+		{
+			return new Product(in);
+		}
+
+		public Product[] newArray(int size)
+		{
+			return new Product[size];
+		}
+	};
+    public Product()
+    {
+
+    }
+	private Product(Parcel in)
+	{
+		readFromParcel(in);
+	}
+
+	@Override
+	public int describeContents()
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	public void readFromParcel(Parcel in)
+	{
+		id = in.readInt();
+		name = in.readString();
+		price = in.readFloat();
+
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags)
+	{
+		dest.writeInt(id);
+		dest.writeString(name);
+		dest.writeFloat(price);
+
+	}
+
+	public int getId()
+	{
+		return id;
+	}
+
+	public void setId(int id)
+	{
+		this.id = id;
+	}
+
+	public String getName()
+	{
+		return name;
+	}
+
+	public void setName(String name)
+	{
+		this.name = name;
+	}
+
+	public float getPrice()
+	{
+		return price;
+	}
+
+	public void setPrice(float price)
+	{
+		this.price = price;
+	}
+
+}
+2.2.4 建立一个Product.aidl文件
+parcelable Product;
+
+2.2.5 服务类
+public class MyService extends Service
+{
+
+	public class MyServiceImpl extends IMyService.Stub
+	{
+
+		@Override
+		public Product getProduct() throws RemoteException
+		{
+
+			Product product = new Product();
+			product.setId(1234);
+			product.setName("汽车");
+			product.setPrice(31000);
+			return product;
+		}
+
+		@Override
+		public Map getMap(String country, Product product)
+				throws RemoteException
+		{
+			Map map = new HashMap<String, String>();
+			map.put("country", country);
+			map.put("id", product.getId());
+			map.put("name", product.getName());
+			map.put("price", product.getPrice());
+			map.put("product", product);
+			return map;
+		}
+	}
+
+	@Override
+	public IBinder onBind(Intent intent)
+	{
+		return new MyServiceImpl();
+	}
+
+
+}
+
+2.2.6 配置服务类
+<service android:name=".MyService" >
+			<intent-filter>
+				<action android:name="mobile.android.complex.type.aidl.IMyService" />
+			</intent-filter>
+</service>
+
+2.2.7 客户端使用
+public class Main extends Activity implements OnClickListener
+{
+	private IMyService myService = null;
+	private Button btnInvokeAIDLService;
+	private Button btnBindAIDLService;
+	private TextView textView;
+	private ServiceConnection serviceConnection = new ServiceConnection()
+	{
+
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+			myService = IMyService.Stub.asInterface(service);
+			btnInvokeAIDLService.setEnabled(true);
+
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			// TODO Auto-generated method stub
+
+		}
+	};
+
+	@Override
+	public void onClick(View view)
+	{
+		switch (view.getId())
+		{
+			case R.id.btnBindAIDLService:
+				bindService(new Intent("mobile.android.complex.type.aidl.IMyService"),
+						serviceConnection, Context.BIND_AUTO_CREATE);
+				break;
+
+			case R.id.btnInvokeAIDLService:
+				try
+				{
+					String s = "";
+					s = "Product.id = " + myService.getProduct().getId() + "\n";
+					s += "Product.name = " + myService.getProduct().getName()
+							+ "\n";
+					s += "Product.price = " + myService.getProduct().getPrice()
+							+ "\n";
+
+					s += myService.getMap("China", myService.getProduct()).toString();
+					textView.setText(s);
+				}
+				catch (Exception e)
+				{
+
+				}
+				break;
+		}
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		btnInvokeAIDLService = (Button) findViewById(R.id.btnInvokeAIDLService);
+		btnBindAIDLService = (Button) findViewById(R.id.btnBindAIDLService);
+		btnInvokeAIDLService.setEnabled(false);
+		textView = (TextView) findViewById(R.id.textview);
+		btnInvokeAIDLService.setOnClickListener(this);
+		btnBindAIDLService.setOnClickListener(this);
+	}
+}
+
+3.AIDL与来去电自动能够挂断
+3.1先找到NeighboringCellInfo.aidl和ITelephony.aidl,连同其所在的包复制到项目工程源代码目录中
+package android.telephony;
+
+parcelable NeighboringCellInfo;
+
+-----------------------
+
+package com.android.internal.telephony;
+
+import android.os.Bundle;
+import java.util.List;
+import android.telephony.NeighboringCellInfo;
+
+
+interface ITelephony {
+
+    /**
+     * Dial a number. This doesn't place the call. It displays
+     * the Dialer screen.
+     * @param number the number to be dialed. If null, this
+     * would display the Dialer screen with no number pre-filled.
+     */
+    void dial(String number);
+
+    /**
+     * Place a call to the specified number.
+     * @param number the number to be called.
+     */
+    void call(String number);
+
+    /**
+     * If there is currently a call in progress, show the call screen.
+     * The DTMF dialpad may or may not be visible initially, depending on
+     * whether it was up when the user last exited the InCallScreen.
+     *
+     * @return true if the call screen was shown.
+     */
+    boolean showCallScreen();
+
+    /**
+     * Variation of showCallScreen() that also specifies whether the
+     * DTMF dialpad should be initially visible when the InCallScreen
+     * comes up.
+     *
+     * @param showDialpad if true, make the dialpad visible initially,
+     *                    otherwise hide the dialpad initially.
+     * @return true if the call screen was shown.
+     *
+     * @see showCallScreen
+     */
+    boolean showCallScreenWithDialpad(boolean showDialpad);
+
+    /**
+     * End call or go to the Home screen
+     *
+     * @return whether it hung up
+     */
+    boolean endCall();
+
+    /**
+     * Answer the currently-ringing call.
+     *
+     * If there's already a current active call, that call will be
+     * automatically put on hold.  If both lines are currently in use, the
+     * current active call will be ended.
+     *
+     * TODO: provide a flag to let the caller specify what policy to use
+     * if both lines are in use.  (The current behavior is hardwired to
+     * "answer incoming, end ongoing", which is how the CALL button
+     * is specced to behave.)
+     *
+     * TODO: this should be a oneway call (especially since it's called
+     * directly from the key queue thread).
+     */
+    void answerRingingCall();
+
+    /**
+     * Silence the ringer if an incoming call is currently ringing.
+     * (If vibrating, stop the vibrator also.)
+     *
+     * It's safe to call this if the ringer has already been silenced, or
+     * even if there's no incoming call.  (If so, this method will do nothing.)
+     *
+     * TODO: this should be a oneway call too (see above).
+     *       (Actually *all* the methods here that return void can
+     *       probably be oneway.)
+     */
+    void silenceRinger();
+
+    /**
+     * Check if we are in either an active or holding call
+     * @return true if the phone state is OFFHOOK.
+     */
+    boolean isOffhook();
+
+    /**
+     * Check if an incoming phone call is ringing or call waiting.
+     * @return true if the phone state is RINGING.
+     */
+    boolean isRinging();
+
+    /**
+     * Check if the phone is idle.
+     * @return true if the phone state is IDLE.
+     */
+    boolean isIdle();
+
+    /**
+     * Check to see if the radio is on or not.
+     * @return returns true if the radio is on.
+     */
+    boolean isRadioOn();
+
+    /**
+     * Check if the SIM pin lock is enabled.
+     * @return true if the SIM pin lock is enabled.
+     */
+    boolean isSimPinEnabled();
+
+    /**
+     * Cancels the missed calls notification.
+     */
+    void cancelMissedCallsNotification();
+
+    /**
+     * Supply a pin to unlock the SIM.  Blocks until a result is determined.
+     * @param pin The pin to check.
+     * @return whether the operation was a success.
+     */
+    boolean supplyPin(String pin);
+
+    /**
+     * Handles PIN MMI commands (PIN/PIN2/PUK/PUK2), which are initiated
+     * without SEND (so <code>dial</code> is not appropriate).
+     *
+     * @param dialString the MMI command to be executed.
+     * @return true if MMI command is executed.
+     */
+    boolean handlePinMmi(String dialString);
+
+    /**
+     * Toggles the radio on or off.
+     */
+    void toggleRadioOnOff();
+
+    /**
+     * Set the radio to on or off
+     */
+    boolean setRadio(boolean turnOn);
+
+    /**
+     * Request to update location information in service state
+     */
+    void updateServiceLocation();
+
+    /**
+     * Enable location update notifications.
+     */
+    void enableLocationUpdates();
+
+    /**
+     * Disable location update notifications.
+     */
+    void disableLocationUpdates();
+
+    /**
+     * Enable a specific APN type.
+     */
+    int enableApnType(String type);
+
+    /**
+     * Disable a specific APN type.
+     */
+    int disableApnType(String type);
+
+    /**
+     * Allow mobile data connections.
+     */
+    boolean enableDataConnectivity();
+
+    /**
+     * Disallow mobile data connections.
+     */
+    boolean disableDataConnectivity();
+
+    /**
+     * Report whether data connectivity is possible.
+     */
+    boolean isDataConnectivityPossible();
+
+    Bundle getCellLocation();
+
+    /**
+     * Returns the neighboring cell information of the device.
+     */
+    List<NeighboringCellInfo> getNeighboringCellInfo();
+
+     int getCallState();
+     int getDataActivity();
+     int getDataState();
+
+    /**
+     * Returns the current active phone type as integer.
+     * Returns TelephonyManager.PHONE_TYPE_CDMA if RILConstants.CDMA_PHONE
+     * and TelephonyManager.PHONE_TYPE_GSM if RILConstants.GSM_PHONE
+     */
+    int getActivePhoneType();
+
+    /**
+     * Returns the CDMA ERI icon index to display
+     */
+    int getCdmaEriIconIndex();
+
+    /**
+     * Returns the CDMA ERI icon mode,
+     * 0 - ON
+     * 1 - FLASHING
+     */
+    int getCdmaEriIconMode();
+
+    /**
+     * Returns the CDMA ERI text,
+     */
+    String getCdmaEriText();
+
+    /**
+     * Returns true if CDMA provisioning needs to run.
+     */
+    boolean getCdmaNeedsProvisioning();
+
+    /**
+      * Returns the unread count of voicemails
+      */
+    int getVoiceMessageCount();
+
+    /**
+      * Returns the network type
+      */
+    int getNetworkType();
+
+    /**
+     * Return true if an ICC card is present
+     */
+    boolean hasIccCard();
+}
+
+3.2 广播接收器
+public class InCallReceiver extends BroadcastReceiver
+{
+
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+
+		TelephonyManager tm = (TelephonyManager) context
+				.getSystemService(Service.TELEPHONY_SERVICE);
+		switch (tm.getCallState())
+		{
+			case TelephonyManager.CALL_STATE_RINGING: // 响铃
+				// 电话号码
+				String incomingNumber = intent
+						.getStringExtra("incoming_number");
+				if ("12345678".equals(incomingNumber))
+				{
+					try
+					{
+
+
+						TelephonyManager telephonyManager = (TelephonyManager) context
+								.getSystemService(Service.TELEPHONY_SERVICE);
+						Class<TelephonyManager> telephonyManagerClass = TelephonyManager.class;
+
+						Method telephonyMethod = telephonyManagerClass
+								.getDeclaredMethod("getITelephony",
+										(Class[]) null);
+						telephonyMethod.setAccessible(true);
+						ITelephony telephony = (com.android.internal.telephony.ITelephony) telephonyMethod
+								.invoke(telephonyManager, (Object[]) null);
+
+
+						telephony.endCall();//挂断电话
+
+					}
+					catch (Exception e)
+					{
+						Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
+					}
+				}
+				break;
+
+		}
+
+	}
+
+}
+
+<receiver android:name=".InCallReceiver" android:enabled="true">
+			<intent-filter>
+				<action android:name="android.intent.action.PHONE_STATE" />
+			</intent-filter>
+</receiver>
+
+3.3 权限
+
+<uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+<uses-permission android:name="android.permission.CALL_PHONE"/>
+
+
+
+
