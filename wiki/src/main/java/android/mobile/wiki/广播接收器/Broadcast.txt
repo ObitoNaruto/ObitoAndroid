@@ -1,0 +1,289 @@
+
+1.短信拦截
+1.1xml中注册广播接收器
+public class ShortMessageReceiver extends BroadcastReceiver
+{
+
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		Bundle bundle = intent.getExtras();
+
+		if (bundle != null)
+		{
+			Set<String> keys = bundle.keySet();
+			for (String key : keys)
+			{
+				Log.d("key", key);
+			}
+
+			Object[] objArray = (Object[]) bundle.get("pdus");
+			SmsMessage[] messages = new SmsMessage[objArray.length];
+
+			for (int i = 0; i < objArray.length; i++)
+			{
+				messages[i] = SmsMessage.createFromPdu((byte[]) objArray[i]);
+				String s = "手机号：" + messages[i].getOriginatingAddress() + "\n";
+				s += "短信内容：" + messages[i].getDisplayMessageBody();
+				Toast.makeText(context, s, Toast.LENGTH_LONG).show();
+			}
+
+
+		}
+	}
+
+}
+
+<receiver android:name=".ShortMessageReceiver"
+			android:enabled="true">
+			<intent-filter>
+				<action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+			</intent-filter>
+		</receiver>
+
+<uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+
+1.2代码注册广播接收器
+public class Main extends Activity
+{
+	private ShortMessageReceiver shortMessageReceiver;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		shortMessageReceiver = new ShortMessageReceiver();//创建广播接收器
+	}
+
+	public void onClick_Register_Broadcast(View view)
+	{
+
+        //注册接收短信广播的接收器
+		 registerReceiver(shortMessageReceiver, new IntentFilter(
+		 "android.provider.Telephony.SMS_RECEIVED"));
+		Toast.makeText(this, "注册成功", Toast.LENGTH_LONG).show();
+	}
+
+	public void onClick_Unregister_Broadcast(View view)
+	{
+		unregisterReceiver(shortMessageReceiver);
+		Toast.makeText(this, "注销成功", Toast.LENGTH_LONG).show();
+	}
+}
+
+2.广播接收器的优先级，priority值越大，优先级越高
+<receiver android:name=".ShortMessageReceiver1"
+			android:enabled="true" >
+			<intent-filter android:priority="500">
+				<action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+			</intent-filter>
+		</receiver>
+		<receiver android:name=".ShortMessageReceiver2"
+			android:enabled="true" >
+			<intent-filter android:priority="1000">
+				<action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+			</intent-filter>
+		</receiver>
+
+
+3.来去电拦截
+3.1来电广播接收器
+public class InCallReceiver extends BroadcastReceiver
+{
+
+
+	@Override
+	public void onReceive(final Context context, final Intent intent)
+	{
+
+		TelephonyManager tm = (TelephonyManager) context
+				.getSystemService(Service.TELEPHONY_SERVICE);
+
+		switch (tm.getCallState())
+		{
+			case TelephonyManager.CALL_STATE_RINGING://响铃
+				String incomingNumber = intent
+						.getStringExtra("incoming_number");
+				Toast.makeText(context, incomingNumber, Toast.LENGTH_LONG).show();
+
+				break;
+			case TelephonyManager.CALL_STATE_OFFHOOK://接听电话
+				Log.d("call_state", "offhook");
+				break;
+
+			case TelephonyManager.CALL_STATE_IDLE://挂断电话
+				Toast.makeText(context,"close", Toast.LENGTH_LONG).show();
+
+		}
+
+	}
+}
+
+<receiver android:name=".InCallReceiver" android:enabled="true">
+			<intent-filter>
+				<action android:name="android.intent.action.PHONE_STATE" />
+			</intent-filter>
+</receiver>
+
+<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+3.2 去电
+public class OutCallReceiver extends BroadcastReceiver
+{
+
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		String outcomingNumber = intent
+				.getStringExtra(Intent.EXTRA_PHONE_NUMBER);
+		Toast.makeText(context, outcomingNumber, Toast.LENGTH_LONG).show();
+
+	}
+
+}
+
+<receiver android:name=".OutCallReceiver" android:enabled="true">
+			<intent-filter>
+				<action android:name="android.intent.action.NEW_OUTGOING_CALL" />
+			</intent-filter>
+</receiver>
+
+<uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
+
+
+4.拦截屏幕休眠与唤醒
+public class ScreenOnOffReceiver extends BroadcastReceiver
+{
+
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		if (Intent.ACTION_SCREEN_ON.equals(intent.getAction()))//屏幕唤醒
+		{
+			Log.d("screen", "ok");
+
+
+		}
+		else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()))//屏幕休眠
+		{
+			Log.d("screen", "off");
+		}
+	}
+
+}
+
+        screenOnOffReceiver = new ScreenOnOffReceiver();
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+		intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+		registerReceiver(screenOnOffReceiver, intentFilter);
+
+备注：屏幕唤醒和休眠广播只能在代码中注册，在xml中注册不生效
+
+
+5.开机自动运行
+public class StartupReceiver extends BroadcastReceiver
+{
+
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		Intent mainIntent = new Intent(context, Main.class);
+		mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		context.startActivity(mainIntent);
+
+	}
+
+}
+<receiver android:name="StartupReceiver">
+			<intent-filter>
+				<action android:name="android.intent.action.BOOT_COMPLETED" />
+			</intent-filter>
+</receiver>
+
+6.显示手机电池的当前点亮
+public class Main extends Activity
+{
+	private TextView tvBatteryChanged;
+	private BroadcastReceiver batteryChangedReceiver = new BroadcastReceiver()
+	{
+
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction()))
+			{
+				int level = intent.getIntExtra("level", 0);//当前点亮的值
+				int scale = intent.getIntExtra("scale", 100);//点亮的总刻度
+				tvBatteryChanged.setText("电池电量：" + (level * 100 / scale) + "%");
+			}
+		}
+	};
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		tvBatteryChanged = (TextView) findViewById(R.id.tvBatteryChanged);
+		registerReceiver(batteryChangedReceiver, new IntentFilter(
+				Intent.ACTION_BATTERY_CHANGED));
+	}
+}
+
+7.发送广播
+7.1发送广播
+public void onClick_Send_Broadcast(View view)
+	{
+		Intent broadcastIntent = new Intent("mobile.android.MYBROADCAST");
+		broadcastIntent.addCategory("mobile.android.mycategory");
+		broadcastIntent.putExtra("name", "broadcast_data");
+		sendBroadcast(broadcastIntent);
+		Toast.makeText(this, "¹ã²¥·¢ËÍ³É¹¦.", Toast.LENGTH_LONG).show();
+	}
+}
+
+7.2接收广播
+public class CustomReceiver extends BroadcastReceiver
+{
+
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+		if ("mobile.android.MYBROADCAST".equals(intent.getAction()))
+		{
+			String name = intent.getStringExtra("name");
+			Toast.makeText(context, name, Toast.LENGTH_LONG).show();
+
+		}
+
+	}
+
+}
+
+<receiver android:name=".CustomReceiver">
+			<intent-filter>
+				<action android:name="mobile.android.MYBROADCAST" />
+				<category android:name="mobile.android.mycategory" />
+			</intent-filter>
+</receiver>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
