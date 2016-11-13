@@ -1,0 +1,100 @@
+
+1.openFileOutput和openFileInput
+        try
+		{
+			OutputStream os = openFileOutput("file.txt", Activity.MODE_PRIVATE);
+			String str1 = "test data";
+			os.write(str1.getBytes("utf-8"));
+			os.close();
+
+			InputStream is = openFileInput("file.txt");
+			byte[] buffer = new byte[100];
+			int byteCount = is.read(buffer);
+			String str2 = new String(buffer, 0, byteCount, "utf-8");
+			TextView textView = (TextView)findViewById(R.id.textview);
+			textView.setText(str2);
+			is.close();
+		}
+		catch (Exception e) {
+
+		}
+
+2.读写SD卡中是文件
+    public void onClick_SaveImageToSDCard(View view)
+	{
+		try
+		{
+			FileOutputStream fos = new FileOutputStream(
+					android.os.Environment.getExternalStorageDirectory()
+							+ "/image.jpg");
+			InputStream is = getResources().getAssets().open("image.jpg");//打开assets目录中的文件，并返回InputStream对象
+
+			byte[] buffer = new byte[8192];
+			int count = 0;
+			while ((count = is.read(buffer)) >= 0)
+			{
+				fos.write(buffer, 0, count);
+			}
+			fos.close();
+			is.close();
+			Toast.makeText(this, "ÒÑ³É¹¦½«Í¼ÏñÎÄ¼þÐ´µ½SD¿¨ÉÏ.", Toast.LENGTH_LONG).show();
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+		}
+	}
+
+	public void onClick_ReadImageFromSDCard(View view)
+	{
+		String filename = android.os.Environment.getExternalStorageDirectory()
+				+ "/image.jpg";
+
+		if (!new File(filename).exists())
+		{
+			Toast.makeText(this, "test", Toast.LENGTH_LONG).show();
+			return;
+		}
+		ImageView imageView = (ImageView) findViewById(R.id.imageview);
+		try
+		{
+			FileInputStream fis = new FileInputStream(filename);
+			Bitmap bitmap = BitmapFactory.decodeStream(fis);
+			imageView.setImageBitmap(bitmap);
+
+			fis.close();
+		}
+		catch (Exception e)
+		{
+			// TODO: handle exception
+		}
+	}
+备注：需要添加权限<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

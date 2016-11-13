@@ -1,0 +1,252 @@
+
+1.数据绑定与SimpleCursorAdaper
+1.11DBService
+public class DBService extends SQLiteOpenHelper
+{
+	private final static int DATABASE_VERSION = 1;
+	//数据库的文件名，文件扩展名可任意取，也可以没有扩展名
+	private final static String DATABASE_NAME = "test.db";
+
+	@Override
+	public void onCreate(SQLiteDatabase db)
+	{
+
+		String sql = "CREATE TABLE [t_test] (" + "[_id] AUTOINC,"
+				+ "[name] VARCHAR(20) NOT NULL ON CONFLICT FAIL,"
+				+ "CONSTRAINT [sqlite_autoindex_t_test_1] PRIMARY KEY ([_id]))";
+
+		db.execSQL(sql);
+		Random random = new Random();
+		for (int i = 0; i < 20; i++)
+		{
+			String s = "";
+			for (int j = 0; j < 10; j++)
+			{
+				char c = (char) (97 + random.nextInt(26));
+				s += c;
+			}
+			db.execSQL("insert into t_test(name) values(?)", new Object[]{ s });//插入数据
+		}
+
+	}
+
+	public DBService(Context context)
+	{
+		super(context, DATABASE_NAME, null, DATABASE_VERSION);
+	}
+
+	@Override
+	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
+	{
+	}
+
+	public Cursor query(String sql, String[] args)//查询数据
+	{
+		SQLiteDatabase db = this.getReadableDatabase();
+		Cursor cursor = db.rawQuery(sql, args);
+		return cursor;
+	}
+}
+
+1.2使用
+public class Main extends ListActivity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		DBService dbService = new DBService(this);
+		Cursor cursor = dbService.query("select * from t_test",null);
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_expandable_list_item_1, cursor,
+				new String[]
+				{"name" }, new int[]
+				{ android.R.id.text1});
+
+		setListAdapter(simpleCursorAdapter);
+	}
+}
+
+2.操作SD卡上的数据库
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+
+	public void onClick_SDCard_Database(View view)
+	{
+		String filename = android.os.Environment.getExternalStorageDirectory()
+				+ "/sdcard_test.db";
+		String createTableSQL = "CREATE TABLE [t_test] (" + "[id] INTEGER,"
+				+ "[name] VARCHAR(20),[memo] TEXT,"
+				+ "CONSTRAINT [sqlite_autoindex_t_test_1] PRIMARY KEY ([id]))";
+		File file = new File(filename);
+		if (file.exists())
+		{
+			file.delete();
+		}
+		SQLiteDatabase database = SQLiteDatabase.openOrCreateDatabase(filename,null);//打开或创建数据库
+
+		database.execSQL(createTableSQL);
+
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("id", 1);
+		contentValues.put("name", "Mike");
+		contentValues.put("memo", "Student");
+		database.insert("t_test", null, contentValues);//插入数据
+
+		String insertSQL = "insert into t_test(id, name, memo) values(?,?,?)";
+		database.execSQL(insertSQL, new Object[]{2, "John", "老师"});//插入数据
+
+		String selectSQL = "select name, memo from t_test where name=?";
+		Cursor cursor = database.rawQuery(selectSQL, new String[]
+		{ "John" });
+		cursor.moveToFirst();
+		Toast.makeText(this, cursor.getString(0) + "  " + cursor.getString(1),
+				Toast.LENGTH_LONG).show();
+
+		database.close();
+	}
+}
+
+3.将数据库与应用程序一起发布
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+
+	public void onClick_APK_Database(View view)
+	{
+		try
+		{
+			InputStream is = getResources().openRawResource(R.raw.apk_test);
+			FileOutputStream fos = new FileOutputStream("/sdcard/apk_test.db");
+			byte[] buffer = new byte[8192];
+			int count = 0;
+			while ((count = is.read(buffer)) >= 0)
+			{
+				fos.write(buffer, 0, count);
+			}
+			fos.close();
+			is.close();
+
+			SQLiteDatabase sqLiteDatabase = SQLiteDatabase
+					.openOrCreateDatabase("/sdcard/apk_test.db", null);
+			Cursor cursor = sqLiteDatabase.rawQuery("select * from t_test",
+					null);
+			if (cursor.moveToFirst())
+			{
+				Toast.makeText(this, cursor.getString(1), Toast.LENGTH_LONG)
+						.show();
+			}
+			cursor.close();
+			sqLiteDatabase.close();
+
+		}
+		catch (Exception e)
+		{
+
+		}
+	}
+	public void onClick_APK_Large_Database(View view)
+	{
+		try
+		{
+			InputStream is = getResources().openRawResource(R.raw.apk_test_large);
+			FileOutputStream fos = new FileOutputStream("/sdcard/apk_test_large.db");
+			byte[] buffer = new byte[8192];
+			int count = 0;
+			while ((count = is.read(buffer)) >= 0)
+			{
+				fos.write(buffer, 0, count);
+			}
+			fos.close();
+			is.close();
+
+			SQLiteDatabase sqLiteDatabase = SQLiteDatabase
+					.openOrCreateDatabase("/sdcard/apk_test_large.db", null);
+			Cursor cursor = sqLiteDatabase.rawQuery("select * from t_test limit 1, 1",
+					null);
+			if (cursor.moveToFirst())
+			{
+				Toast.makeText(this, cursor.getString(1), Toast.LENGTH_LONG)
+						.show();
+			}
+			cursor.close();
+			sqLiteDatabase.close();
+
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+		}
+	}
+}
+
+备注：<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+4.内存数据库
+public class Main extends Activity
+{
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+	}
+
+	public void onClick_Memory_Database(View view)
+	{
+		String createTableSQL = "CREATE TABLE [t_test] (" + "[id] INTEGER,"
+				+ "[name] VARCHAR(20),[memo] TEXT,"
+				+ "CONSTRAINT [sqlite_autoindex_t_test_1] PRIMARY KEY ([id]))";
+		//创建内存数据库（不需要指定数据库文件名），该数据库只存在于手机内存RAM中，并不保存在SK或者手机内置存储器上
+		SQLiteDatabase sqLiteDatabase = SQLiteDatabase.create(null)
+		sqLiteDatabase.execSQL(createTableSQL);
+		String insertSQL = "insert into t_test(id, name) values(?,?)";
+		sqLiteDatabase.execSQL(insertSQL, new Object[]
+		{ 1, "冀秦" });
+
+		String selectSQL = "select name from t_test";
+		Cursor cursor = sqLiteDatabase.rawQuery(selectSQL, null);
+		cursor.moveToFirst();
+		Toast.makeText(this, cursor.getString(0) ,
+				Toast.LENGTH_LONG).show();
+
+		sqLiteDatabase.close();
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

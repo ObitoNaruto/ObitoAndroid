@@ -1,0 +1,32 @@
+`//写数据
+public void onClick_WriteData(View view)
+	{
+		SharedPreferences mySharedPreferences = getSharedPreferences("test",
+				Activity.MODE_PRIVATE);
+		SharedPreferences.Editor editor = mySharedPreferences.edit();
+		editor.putString("name", "冀秦");
+		editor.putString("habit", "Android开发学习");
+		editor.commit();
+	}
+    //读数据
+	public void onClick_ReadData(View view)
+	{
+		SharedPreferences sharedPreferences = getSharedPreferences("test",
+				Activity.MODE_PRIVATE);
+		//
+		String name = sharedPreferences.getString("name", "");
+		String habit = sharedPreferences.getString("habit", "");
+		Toast.makeText(this, "name£º" + name + "\n" + "habit£º" + habit,
+				Toast.LENGTH_LONG).show();
+
+	}
+
+
+备注：SharedPreferences数据存储位置：在当期程序私有目录中
+
+
+
+
+
+
+
