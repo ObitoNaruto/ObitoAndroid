@@ -1,0 +1,297 @@
+
+1.通过系统发送短信
+Intent sendIntent = new Intent(Intent.ACTION_SENDTO, Uri.parse("sms:12345678"));
+sendIntent.putExtra("sms_body", "hello");
+startActivity(sendIntent);
+
+2.直接发送短信
+
+SmsManager smsManager = SmsManager.getDefault();
+smsManager.sendTextMessage("12345678", null, "hello", null, null);
+Toast.makeText(this, "短信发送成功", Toast.LENGTH_LONG).show();
+
+<uses-permission android:name="android.permission.SEND_SMS" />
+
+备注：获取短信发送失败和成功的消息
+sendTextMessage的原型：sendTextMessage(String destinationAddress, String scAddress, String text, PendingIntent sendIntent, PendingIntent deliveryIntent)
+sendIntent表示短信成功发送，deliveryIntent表示短信不可达
+
+
+3.保存短信发送记录
+        SmsManager smsManager = SmsManager.getDefault();
+		smsManager.sendTextMessage("123456", null, "hello", null, null);
+		Toast.makeText(this, "发送短信成功", Toast.LENGTH_LONG).show();
+
+        //在canonical-addresses表中查询指定电话号码对ing的回话ID
+		Uri uri = Uri.parse("content://mms-sms/canonical-addresses");
+		Cursor cursor = getContentResolver().query(uri, null, "address=?",
+				new String[]
+				{ "123456" }, null);
+
+		String threadID = "";
+		if (cursor.moveToNext())
+		{
+			threadID = cursor.getString(0);
+		}
+		else
+		{
+			return;
+		}
+
+
+		ContentValues contentValues = new ContentValues();
+		contentValues.put("thread_id", threadID);//设置会话ID
+		contentValues.put("body", "hello");//设置短信内容
+		contentValues.put("date", new Date().getTime());//设置短信的日期，单位（毫秒）
+		contentValues.put("address", 3544545);//设置电话号码
+		contentValues.put("type", 2);//该字段为1表示接收到短信，值23为2表示发送的短信
+		contentValues.put("read", 1);//该字段值0表示短信已被查看，值为1表示未读短信
+		getContentResolver().insert(Uri.parse("content://sms"), contentValues);//保存短信记录
+
+    <uses-permission android:name="android.permission.READ_SMS" />
+	<uses-permission android:name="android.permission.WRITE_SMS" />
+	<uses-permission android:name="android.permission.SEND_SMS" />
+
+4.监听短信和彩信
+4.1拦截彩信
+public void onReceive(Context context, Intent intent){
+    Bundle bundle = intent.getExtras();
+    //获取彩信数据
+    byte[] data = bundle.getByteArray("data");
+    PduParser pduParser = new PduParser();
+    //分析彩信头，以便获取电话号
+    PduHeaders pduHeaders = pduParser.parseHeaders(data);
+    //返回电话号
+    String phoneNumber = pduHeaders.getFrom().getString();
+}
+
+<receiver android:name=".MMSReceiver"
+    android:enabled="true">
+    <intent-filter>
+        <action android:name="android.provider.Telephony.WAP_PUSH_RECEIVED" />
+        <data android:mimeType="application/vnd.wap.mms-message" />
+
+    </intent-filter>
+
+</receiver>
+
+<uses-permission android:name="android.permission.RECEIVE_mMS" />
+<uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
+
+5.读取彩信内容
+5.1获取彩信列表
+public class MMSList extends ListActivity implements OnItemClickListener
+{
+	private Cursor cursor;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		//获取彩信列表
+		cursor = getContentResolver().query(Uri.parse("content://mms"), null,
+				null, null, null);
+        //“sub”存储的是彩信的标题
+		SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(this,
+				android.R.layout.simple_list_item_1, cursor, new String[]
+				{ "sub" }, new int[]
+				{ android.R.id.text1 })
+		{
+
+			@Override
+			public void setViewText(TextView v, String text)
+			{
+				try
+				{
+					//由于sub字段的值是以ISO-8859-1编码格式保存的UTF-8编码，所以需要对sub字段值解码
+					text = new String(text.getBytes("ISO-8859-1"), "UTF-8");
+				}
+				catch (Exception e)
+				{
+
+				}
+				super.setViewText(v, text);
+			}
+		};
+		setListAdapter(simpleCursorAdapter);
+		getListView().setOnItemClickListener(this);
+
+	}
+
+	@Override
+	public void onItemClick(AdapterView<?> parent, View view, int position,
+			long id)
+	{
+		cursor.moveToPosition(position);
+		String mid = cursor.getString(cursor.getColumnIndex("_id"));
+		Intent intent = new Intent(this, MMSBrowser.class);
+		intent.putExtra("mid", mid);
+		startActivity(intent);
+
+	}
+
+}
+5.2当前彩信的内容
+public class MMSBrowser extends Activity
+{
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+
+		ScrollView scrollView = (ScrollView) getLayoutInflater().inflate(
+				R.layout.main, null);
+		LinearLayout linearLayout = (LinearLayout) scrollView
+				.findViewById(R.id.linearlayout);
+		String mid = getIntent().getStringExtra("mid");
+		//查询part表以获取彩信的所有内容
+		Cursor cursor = getContentResolver().query(
+				Uri.parse("content://mms/part"), null, "mid=?", new String[]
+				{ mid }, "_id asc");
+		while (cursor.moveToNext())//循环处理彩信的每一条内容
+		{
+
+			String type = cursor.getString(cursor.getColumnIndex("ct"));//获取当前彩信类型
+			String text = cursor.getString(cursor.getColumnIndex("text"));//获取当前彩信内容的文本
+			if (text != null)
+				text = text.replaceAll("\\r", "");//由于android中只需要换行符（\n）就可以，如果加了回车符(\r)会显示小方块，因此，需要将文本中所有的回车符替换掉
+			byte[] data = null;
+            //获取彩信数据
+			Uri partUri = Uri.parse("content://mms/part/"
+					+ cursor.getString(cursor.getColumnIndex("_id")));
+
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			InputStream is = null;
+
+			try
+			{
+				is = getContentResolver().openInputStream(partUri);//获取彩信数据的InputStream对象
+				byte[] buffer = new byte[8192];
+				int len = 0;
+				//读取彩信数据
+				while ((len = is.read(buffer)) >= 0)
+				{
+					baos.write(buffer, 0, len);
+				}
+
+			}
+			catch (IOException e)
+			{
+			}
+			finally
+			{
+				if (is != null)
+				{
+					try
+					{
+						is.close();
+						//将彩信数据保存在byte数组中
+						data = baos.toByteArray();
+					}
+					catch (IOException e)
+					{
+
+					}
+				}
+			}
+			if (type.toLowerCase().contains("text"))//处理文本类型的彩信
+			{
+				TextView textView = (TextView) getLayoutInflater().inflate(
+						R.layout.text, null);
+				textView.setText(text);
+				linearLayout.addView(textView);
+			}
+			else if (type.toLowerCase().contains("image"))//图片类型
+			{
+				ImageView imageView = (ImageView) getLayoutInflater().inflate(
+						R.layout.image, null);
+				Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0,
+						data.length);
+				imageView.setImageBitmap(bitmap);
+				linearLayout.addView(imageView);
+			}
+			else if (type.toLowerCase().contains("video"))//视频类型
+			{
+
+				String filename = "/sdcard/temp.3gp";
+				ImageView imageView = (ImageView) getLayoutInflater().inflate(
+						R.layout.image, null);
+				if (!new File(filename).exists())
+				{
+					try
+					{
+
+						FileOutputStream fos = new FileOutputStream(filename);
+						fos.write(data);
+						fos.close();
+					}
+					catch (Exception e)
+					{
+					}
+				}
+				Bitmap bitmap = getVideoThumbnail(filename);//获取视频文件是缩略图
+				imageView.setImageBitmap(bitmap);
+				linearLayout.addView(imageView);
+			}
+		}
+
+		setContentView(scrollView);
+	}
+
+	public Bitmap getVideoThumbnail(String filename)
+	{
+		Bitmap bitmap = null;
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inDither = false;
+		options.inPreferredConfig = Bitmap.Config.ARGB_8888;//设置位图颜色配置
+
+		String whereClause = MediaStore.Video.Media.DATA + " = '" + filename
+				+ "'";
+
+		Cursor cursor = getContentResolver().query(
+				MediaStore.Video.Media.EXTERNAL_CONTENT_URI, new String[]
+				{ MediaStore.Video.Media._ID }, whereClause, null, null);
+		boolean delete = false;//delete表示从video表中删除指定的视频记录
+		if (cursor == null || cursor.getCount() == 0)//在video中未查到视频记录，则从video表插入一条记录
+		{
+			ContentValues values = new ContentValues();
+			values.put(MediaStore.Video.Media.DATA, filename);
+			getContentResolver().insert(
+					MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values);
+			cursor = getContentResolver().query(
+					MediaStore.Video.Media.EXTERNAL_CONTENT_URI, new String[]
+					{ MediaStore.Video.Media._ID }, whereClause, null, null);
+			if (cursor == null || cursor.getCount() == 0)
+				return null;
+			delete = true;//在获取视频缩略图后将新插入的记录删除
+		}
+		cursor.moveToFirst();
+
+        //后去视频记录的id
+		String videoId = cursor.getString(cursor
+				.getColumnIndex(MediaStore.Video.Media._ID));
+
+		if (videoId == null)
+		{
+			return null;
+		}
+		cursor.close();
+		long videoIdLong = Long.parseLong(videoId);
+		//获取视频的缩略图
+		bitmap = MediaStore.Video.Thumbnails.getThumbnail(getContentResolver(),
+				videoIdLong, Images.Thumbnails.MICRO_KIND, options);
+		if (delete)
+		{
+			//删除插入的视频记录
+			getContentResolver().delete(
+					MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+					MediaStore.Video.Media.DATA + "=?", new String[]
+					{ filename });
+		}
+		return bitmap;
+	}
+
+}
+
+<uses-permission android:name="android.permission.READ_SMS" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
