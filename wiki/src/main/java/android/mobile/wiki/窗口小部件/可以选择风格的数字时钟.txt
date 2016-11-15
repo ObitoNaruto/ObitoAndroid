@@ -1,0 +1,246 @@
+
+1.建立一个SettingActivity类
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+	<RadioGroup android:id="@+id/radiogroup" android:layout_width="wrap_content"
+		android:layout_height="wrap_content">
+		<RadioButton android:id="@+id/radiobutton1" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:drawableRight="@drawable/clock1_check"
+			android:drawablePadding="20dp" android:layout_marginTop="10dp" />
+		<RadioButton android:id="@+id/radiobutton2" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:drawableRight="@drawable/clock2_check"
+			android:drawablePadding="20dp" android:layout_marginTop="10dp"  />
+	</RadioGroup>
+	<Button android:id="@+id/btnOK" android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="确定"   android:layout_marginTop="10dp"/>
+
+</LinearLayout>
+
+xml文件下建立一个appwidget_provider.xml文件
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+	android:minWidth="294dp" android:minHeight="146dp"
+	android:updatePeriodMillis="0"
+	android:configure="mobile.android.digit.clock.activity.SettingActivity" />
+
+
+
+public class SettingActivity extends Activity implements OnClickListener
+{
+	private int appWidgetId;
+	private RadioGroup radioGroup;
+	private static final String PREFS_NAME = "digitclock";
+	private static final String PREFIX_NAME = "style_id_";
+
+    //单击确定按钮，会关闭SettingActivity，并在桌面上显示相应风格的Widget
+	@Override
+	public void onClick(View view)
+	{
+		int styleId = radioGroup.getCheckedRadioButtonId();
+		saveStyleId(this, appWidgetId, styleId);//保存用户的设置，以便在加载Widget时读取这些设置
+		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);//
+		Intent resultValue = new Intent();
+		resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);//保存WIdget的Id，以便系统可以获得当前设置的ID
+		setResult(RESULT_OK, resultValue);//必须返回当前设置的widget的ID
+		DigitClock.startTimer(this, appWidgetManager,appWidgetId, styleId);//启动Widget中的定时器
+		finish();
+
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.setting);
+		Button btnOK = (Button) findViewById(R.id.btnOK);
+		btnOK.setOnClickListener(this);
+		Intent intent = getIntent();
+		Bundle extras = intent.getExtras();
+		if (extras != null)
+		{
+			//获得Widget的ID
+			appWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID,
+					AppWidgetManager.INVALID_APPWIDGET_ID);
+		}
+
+		radioGroup = (RadioGroup) findViewById(R.id.radiogroup);
+		radioGroup.check(R.id.radiobutton1);
+	}
+
+	public static void saveStyleId(Context context, int appWidgetId,
+			int style_id)
+	{
+		SharedPreferences sharedPreferences = context.getSharedPreferences(
+				PREFS_NAME, Activity.MODE_PRIVATE);
+		SharedPreferences.Editor editor = sharedPreferences.edit();
+		editor.putInt(PREFIX_NAME + appWidgetId, style_id);
+		editor.commit();
+	}
+
+	public static int getStyleId(Context context, int appWidgetId,
+			int defaultStyleId)
+	{
+		SharedPreferences sharedPreferences = context.getSharedPreferences(
+				PREFS_NAME, Activity.MODE_PRIVATE);
+		return sharedPreferences.getInt(PREFIX_NAME + appWidgetId,
+				defaultStyleId);
+	}
+
+}
+
+2.DigitClock
+public class DigitClock extends AppWidgetProvider
+{
+	private static Map<Integer, Timer> timers;//保存Timer对象
+
+	public void onUpdate(Context context, AppWidgetManager appWidgetManager,
+			final int[] appWidgetIds)
+	{
+		int n = appWidgetIds.length;
+		if (timers == null)
+			timers = new HashMap<Integer, Timer>();
+		for (int i = 0; i < n; i++)
+		{
+			int styleId = SettingActivity.getStyleId(context,
+					appWidgetIds[i], R.id.radiobutton1);
+
+			if (timers.get(appWidgetIds[i]) != null)
+			{
+				((Timer) timers.get(appWidgetIds[i])).cancel();
+			}
+			Message message = new Message();
+			message.arg1 = appWidgetIds[i];
+			message.arg2 = styleId;
+			updateView(context, appWidgetManager, message);
+			startTimer(context, appWidgetManager, appWidgetIds[i], styleId);
+		}
+	}
+
+	private static void updateView(Context context,
+			AppWidgetManager appWidgetManager, Message msg)
+	{
+		try
+		{
+
+			RemoteViews views = null;
+			String enter = "";
+			//根据背景风格设置不同的数字时钟背景
+			if (msg.arg2 == R.id.radiobutton1)
+			{
+
+				views = new RemoteViews(context.getPackageName(),
+						R.layout.clock1);
+
+			}
+			else
+			{
+				views = new RemoteViews(context.getPackageName(),
+						R.layout.clock2);
+				enter = "\n";
+			}
+
+			java.text.DateFormat df = new java.text.SimpleDateFormat("HH:mm:ss");
+			views.setTextViewText(R.id.textview, enter + df.format(new Date()));
+			appWidgetManager.updateAppWidget(msg.arg1, views);
+		}
+
+		catch (Exception e)
+		{
+
+		}
+
+	}
+
+	private static Handler getHandler(final Context context,
+			final AppWidgetManager appWidgetManager)
+	{
+		Handler handler = new Handler()
+		{
+			public void handleMessage(Message msg)
+			{
+
+				updateView(context, appWidgetManager, msg);
+				super.handleMessage(msg);
+			}
+		};
+		return handler;
+	}
+
+	private static TimerTask getTimerTask(final Context context,
+			AppWidgetManager appWidgetManager, final int appWidgetId,
+			final int styleId)
+	{
+
+		final Handler handler = getHandler(context, appWidgetManager);
+		return new TimerTask()
+		{
+
+			public void run()
+			{
+				Message message = new Message();
+				message.arg1 = appWidgetId;
+				message.arg2 = styleId;
+				handler.sendMessage(message);
+			}
+		};
+	}
+    //设置完Widget风格后，调用startTimer方法开启当前Widget的定时器
+	public static void startTimer(Context context,
+			AppWidgetManager appWidgetManager, int appWidgetId, int styleId)
+	{
+		if (timers.get(appWidgetId) != null)
+		{
+			((Timer) timers.get(appWidgetId)).cancel();
+		}
+		//获取TimerTask对象
+		TimerTask timerTask = getTimerTask(context, appWidgetManager,
+				appWidgetId, styleId);
+		Timer timer = new Timer();
+		//开始定时器
+		timer.schedule(timerTask, 0, 1000);
+		//将Timer对象保存在timers变量中
+		timers.put(appWidgetId, timer);
+	}
+
+	@Override
+	public void onDisabled(Context context)
+	{
+		Toast.makeText(context, "ËùÓÐµÄWidget±»É¾³ý", Toast.LENGTH_SHORT).show();
+		super.onDisabled(context);
+	}
+
+	@Override
+	public void onEnabled(Context context)
+	{
+		Toast.makeText(context, "·ÅÖÃÁËµÚÒ»¸öWidget", Toast.LENGTH_SHORT).show();
+		super.onEnabled(context);
+	}
+
+	@Override
+	public void onDeleted(Context context, int[] appWidgetIds)
+	{
+
+		super.onDeleted(context, appWidgetIds);
+		if (timers != null)
+		{
+			for (int i = 0; i < appWidgetIds.length; i++)
+			{
+				Timer timer = (Timer) timers.get(appWidgetIds[i]);
+				if (timer != null)
+				{
+					timer.cancel();
+					Toast.makeText(context, "¸ÃWidgetÒÑ±»É¾³ý.", Toast.LENGTH_SHORT).show();
+				}
+			}
+		}
+	}
+
+}
+
+
+
+
+
+
+
+

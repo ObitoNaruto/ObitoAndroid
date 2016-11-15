@@ -1,0 +1,94 @@
+1.编写一个XML布局文件main.xml
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="280dp"
+	android:layout_height="123dp">
+	<ImageView android:id="@+id/imageview" android:layout_width="fill_parent"
+		android:layout_height="fill_parent" android:src="@drawable/frame" />
+	<TextView android:id="@+id/textview" android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:textColor="#F00" android:textSize="35sp" android:gravity="center" />
+</FrameLayout>
+
+2.在res/xml目录中建立一个appwidget_provider.xml
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="294dp"
+    android:minHeight="146dp"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/main"/>
+
+3.DigitClock
+public class DigitClock extends AppWidgetProvider
+{
+
+	private Timer timer = new Timer();
+	private int[] appWidgetIds;
+	private AppWidgetManager appWidgetManager;
+	private Context context;
+    //当系统装载Widget时调用onUpdate方法
+	public void onUpdate(Context context, AppWidgetManager appWidgetManager,
+			int[] appWidgetIds)
+	{
+		this.appWidgetManager = appWidgetManager;
+		this.appWidgetIds = appWidgetIds;
+		this.context = context;
+
+		timer = new Timer();
+		timer.schedule(timerTask, 0, 1000);//启动定时器
+
+
+	}
+
+	private Handler handler = new Handler()
+	{
+		public void handleMessage(Message msg)
+		{
+			switch (msg.what)
+			{
+				case 1:
+
+
+					int n = appWidgetIds.length;
+					for (int i = 0; i < n; i++)//更新所有的widget
+					{
+						int appWidgetId = appWidgetIds[i];
+						RemoteViews views = new RemoteViews(context
+								.getPackageName(), R.layout.main);
+						java.text.DateFormat df = new java.text.SimpleDateFormat(
+								"HH:mm:ss");
+						views.setTextViewText(R.id.textview, df
+								.format(new Date()));
+						appWidgetManager.updateAppWidget(appWidgetId, views);
+					}
+					break;
+			}
+			super.handleMessage(msg);
+		}
+	};
+	private TimerTask timerTask = new TimerTask()
+	{
+		public void run()
+		{
+
+			Message message = new Message();
+			message.what = 1;
+			handler.sendMessage(message); // 将任务发送到消息队列
+		}
+	};
+
+}
+
+4.在配置文件中
+<receiver android:name=".DigitClock">
+			<meta-data android:name="android.appwidget.provider"
+				android:resource="@xml/appwidget_provider" />
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+			</intent-filter>
+</receiver>
+备注：运行实例，在手机上并没有出现任何届满，但在Widgets列表中可以找到
+
+
+
+
+
+
