@@ -1,0 +1,127 @@
+
+
+
+1.AndroidInputMethodService
+//选择输入法时，onCreate方法只调用一次，然后在输入法控件处于焦点时，onCreateInputView和onCreateCandidatesView会各调用一次，然后会调用
+//onStartInputView方法，这时会进入生命周期的一个循环，如果当前窗口有多个输入控件，焦点从弹出软键盘的输入控件切换到其他的输入控件时，系统会首先调用
+//onFinishInput。然后会再次调用onStartInputView方法在新的输入king见获得焦点后显示软键盘，如果这时选择其他是输入法，才会调用onDestroy
+public class AndroidInputMethodService extends InputMethodService implements
+		OnClickListener
+{
+
+	@Override
+	public void onCreate()
+	{
+		super.onCreate();
+		Log.d("IME_onCreate", "invoked");
+	}
+
+	@Override
+	public View onCreateInputView()
+	{
+		View view = getLayoutInflater().inflate(R.layout.keyboard, null);
+		view.findViewById(R.id.button1).setOnClickListener(this);
+		view.findViewById(R.id.button2).setOnClickListener(this);
+		view.findViewById(R.id.button3).setOnClickListener(this);
+		view.findViewById(R.id.button4).setOnClickListener(this);
+		view.findViewById(R.id.btnHide).setOnClickListener(this);
+		Log.d("IME_onCreateInputView", "invoked");
+		return view;
+	}
+
+	@Override
+	public View onCreateCandidatesView()
+	{
+		View view = getLayoutInflater().inflate(R.layout.keyboard, null);
+		view.findViewById(R.id.button1).setOnClickListener(this);
+		view.findViewById(R.id.button2).setVisibility(View.GONE);
+		view.findViewById(R.id.button3).setVisibility(View.GONE);
+		view.findViewById(R.id.button4).setVisibility(View.GONE);
+		view.findViewById(R.id.btnHide).setVisibility(View.GONE);
+		Log.d("IME_onCreateCandidatesView", "invoked");
+		return view;
+	}
+
+	@Override
+	public void onStartInputView(EditorInfo info, boolean restarting)
+	{
+		Log.d("IME_onStartInputView", "invoked");
+		super.onStartInputView(info, restarting);
+	}
+
+	@Override
+	public void onFinishInput()
+	{
+		Log.d("IME_onFinishInput", "invoked");
+		super.onFinishInput();
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		Log.d("IME_onDestroy", "invoked");
+		super.onDestroy();
+	}
+
+	@Override
+	public void onClick(View view)
+	{
+		if (view.getId() == R.id.btnHide)
+		{
+			hideWindow();//隐藏软键盘
+
+		}
+		else
+		{
+			Button button = (Button) view;
+			InputConnection inputConnection = getCurrentInputConnection();//获得InputConnection对象
+
+			if (button.getId() == R.id.button1)
+			{
+				inputConnection.setComposingText(button.getText(), 1);//设置预输入文本，
+			}
+			else
+			{
+				inputConnection.commitText(button.getText(), 1);//向当期获得焦点的EidtText控件输出文本，第2个参数值为1，表示在当期在当前位置插入文本
+			}
+		}
+	}
+}
+2.配置
+
+        <service
+			android:name="mobile.android.simple.inputmethod.AndroidInputMethodService"
+			android:permission="android.permission.BIND_INPUT_METHOD">//配置输入法服务必须设置android.permission.BIND_INPUT_METHOD权限，并且在intent-filter中添加一个"android.view.InputMethod"动作
+			<intent-filter>
+				<action android:name="android.view.InputMethod" />
+			</intent-filter>
+			<meta-data android:name="android.view.im" android:resource="@xml/method" />//用于配置输入法
+		</service>
+
+
+3.values目录下建立一个xml文件夹，里面建立一个xml文件method
+
+<?xml version="1.0" encoding="utf-8"?>
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+	android:settingsActivity="mobile.android.simple.inputmethod.InputMethodSetting" />
+
+4.InputMethodSetting
+public class InputMethodSetting extends Activity
+{
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.setting);
+	}
+
+}
+
+
+
+
+
+
+
+
+
