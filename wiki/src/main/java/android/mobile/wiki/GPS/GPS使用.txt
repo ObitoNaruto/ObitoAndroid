@@ -1,0 +1,234 @@
+1.获取位置提供者
+public class AllProvidersActivity extends Activity
+{
+	ListView mProviders;
+	LocationManager mLocationManager;
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		mProviders = (ListView) findViewById(R.id.providers);
+		//
+		mLocationManager = (LocationManager)getSystemService(
+			Context.LOCATION_SERVICE);
+
+		//获取所有的LocationProvider的名称
+		List<String> providerNames = mLocationManager.getAllProviders();
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+			this,
+			android.R.layout.simple_list_item_1,
+			providerNames);
+		//显示ui
+		mProviders.setAdapter(adapter);
+	}
+}
+
+2.根据名称获取LocationProvider
+//被动获取位置信息
+LocationProvider passiveProvider = mLocationManager.getProvider(LocationManager.PASSIVE_PROVIDER);
+//通过GPS主动获取位置信息
+LocationProvider gpsProvider = mLocationManager.getProvider(LocationManager.GPS_PROVIDER);
+//从网络获取位置信息
+LocationProvider networkProvider = mLocationManager.getProvider(LocationManager.NETWORK_PROVIDER);
+
+
+3.根据条件获取LocationProvider
+public class CriteriaProvidersActivity extends Activity
+{
+	ListView mProviders;
+	LocationManager mLocationManager;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		mProviders = (ListView) findViewById(R.id.providers);
+		mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		//过滤条件
+		Criteria cri = new Criteria();
+		// 免费的
+		cri.setCostAllowed(false);
+
+		// 提供高度信息
+		cri.setAltitudeRequired(true);
+		// 提供方向信息
+		cri.setBearingRequired(true);
+		// 获取系统所有符合条件的LocationProvider名称
+		List<String> providerNames = mLocationManager.getProviders(cri, true);
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+				android.R.layout.simple_list_item_1, providerNames);
+		//
+		mProviders.setAdapter(adapter);
+	}
+}
+
+4.实时获取GPS定位数据
+public class LocationActivity extends Activity
+{
+	LocationManager mLocationManager;
+	EditText mEditText;
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		mEditText = (EditText) findViewById(R.id.show);
+
+		mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		//从GPS获取最近的定位信息
+		Location location = mLocationManager.getLastKnownLocation(
+			LocationManager.GPS_PROVIDER);
+		// 更新ui
+		updateView(location);
+		// 设置每2秒获取一次GPS的定位信息，其中8表示只有位置移动超过8米才会更新，如果呆在原地不动，或移动聚聚小于8米，系统不会更新定位数据
+		mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER
+			, 2000, 8, new LocationListener()
+		{
+			@Override
+			public void onLocationChanged(Location location)
+			{
+				//高档GPS定位信息发生改变时，更新ui
+				updateView(location);
+			}
+
+			@Override
+			public void onProviderDisabled(String provider)
+			{
+				updateView(null);
+			}
+
+			@Override
+			public void onProviderEnabled(String provider)
+			{
+				// 当GPS可用时，更新位置
+				updateView(mLocationManager
+					.getLastKnownLocation(provider));
+			}
+
+			@Override
+			public void onStatusChanged(String provider, int status,
+				Bundle extras)
+			{
+			}
+		});
+
+	}
+
+	// ¸üÐÂEditTextÖÐÏÔÊ¾µÄÄÚÈÝ
+	public void updateView(Location newLocation)
+	{
+		if (newLocation != null)
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("实时的位置信息\n");
+			sb.append("经度");
+			sb.append(newLocation.getLongitude());
+			sb.append("\n纬度");
+			sb.append(newLocation.getLatitude());
+			sb.append("\n高度");
+			sb.append(newLocation.getAltitude());
+			sb.append("\n速度");
+			sb.append(newLocation.getSpeed());
+			sb.appe<!-- 授权获取定位信息 -->
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />nd("\n方向");
+			sb.append(newLocation.getBearing());
+			mEditText.setText(sb.toString());
+		}
+		else
+		{
+			//
+			mEditText.setText("");
+		}
+	}
+}
+<!-- 授权获取定位信息 -->
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+5.测量地球上任意两点之间的距离
+public class DistanceActivity extends Activity
+{
+    private EditText mEditText;
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_distance);
+		mEditText = (EditText)findViewById(R.id.edittext);
+		//保存返回结果
+		final float[] results= new float[3];
+		//计算两点之间的距离（单位，米）
+		//前两个参数表示起点的纬度和经度，后两个参数表示终点的纬度和经度
+		Location.distanceBetween(20.123, 30.05644, 30.124, 40.543, results);
+		//两点之间的距离
+		final float bearing = results[1];
+		mEditText.setText(String.valueOf(results[0]) + "米");
+	}
+
+
+
+}
+
+6.临近警告
+
+public class ProximityAlertActivity extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		LocationManager locationManager;
+		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		// mock的大致位置经纬度
+		double longitude =123.427109;
+		double latitude = 41.764998;
+		// 定义临近区域半径（米）
+		float radius = 2000;
+
+		// 定义Intent
+		Intent intent = new Intent(this, ProximityAlertReciever.class);
+		// 将Intent包装成PendingIntent
+		PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0);
+
+		// 添加临近警告
+		locationManager.addProximityAlert(latitude, longitude, radius, -1, pendingIntent);
+	}
+}
+
+public class ProximityAlertReciever extends BroadcastReceiver
+{
+	@Override
+	public void onReceive(Context context, Intent intent)
+	{
+
+		// 判断是否为进入指定区域的标志
+		boolean isEnter = intent.getBooleanExtra(
+			LocationManager.KEY_PROXIMITY_ENTERING, false);
+		if(isEnter)
+		{
+			//
+			Toast.makeText(context
+				, "临近"
+				, Toast.LENGTH_LONG)
+				.show();
+		}
+		else
+		{
+			Toast.makeText(context
+				, "非临近"
+				, Toast.LENGTH_LONG)
+				.show();
+		}
+	}
+}
+
+<receiver android:name=".ProximityAlertReciever">
+		</receiver>
+
+<!-- 授权获取定位信息 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
