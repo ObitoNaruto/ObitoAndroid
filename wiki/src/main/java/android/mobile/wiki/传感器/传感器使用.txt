@@ -1,0 +1,130 @@
+
+1.使用传感器步骤
+1.1编写一个截获传感器事件的类，必须实现SensorEventListener接口
+1.2 获得传感器管理对象SensorManager
+1.3 使用SensorManager.registerListener方法注册指定的传感器
+1.4示例
+public class Main extends Activity implements SensorEventListener
+{
+	private TextView tvAccelerometer;
+	private TextView tvMagentic;
+	private TextView tvLight;
+	private TextView tvOrientation;
+	private TextView tvSensors;
+	private SensorManager sensorManager;
+	private float[] accelerometerValues;
+	private float[] geomagneticValues;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+		//注册加速度传感器
+		sensorManager.registerListener(this,
+				sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+				SensorManager.SENSOR_DELAY_FASTEST);//以最快速度获得传感器数据
+        //磁场传感器
+		sensorManager.registerListener(this,
+				sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+				SensorManager.SENSOR_DELAY_FASTEST);
+        //光线传感器
+		sensorManager.registerListener(this,
+				sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT),
+				SensorManager.SENSOR_DELAY_FASTEST);
+        //方向传感器
+		sensorManager.registerListener(this,
+				sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
+				SensorManager.SENSOR_DELAY_FASTEST);
+
+		tvAccelerometer = (TextView) findViewById(R.id.tvAccelerometer);
+		tvMagentic = (TextView) findViewById(R.id.tvMagentic);
+		tvLight = (TextView) findViewById(R.id.tvLight);
+		tvOrientation = (TextView) findViewById(R.id.tvOrientation);
+		tvSensors = (TextView) findViewById(R.id.tvSensors);
+
+		List<Sensor> sensors = sensorManager.getSensorList(Sensor.TYPE_ALL);//获得手机支持的所有传感器
+		for (Sensor sensor : sensors)
+		{
+			tvSensors.append(sensor.getName() + "\n");
+		}
+
+	}
+    //传感器数据变化时调用
+	@Override
+	public void onSensorChanged(SensorEvent event)
+	{
+
+		switch (event.sensor.getType())//获得当前传回数据的传感器类型
+		{
+			case Sensor.TYPE_ACCELEROMETER://加速度
+				String accelerometer = "加速度\n" + "X£º" + event.values[0] + "\n"
+						+ "Y:" + event.values[1] + "\n" + "Z:"
+						+ event.values[2] + "\n";
+				tvAccelerometer.setText(accelerometer);
+				accelerometerValues = event.values.clone();
+				break;
+			case Sensor.TYPE_LIGHT://光线
+				tvLight.setText("亮度" + event.values[0]);
+
+				break;
+			case Sensor.TYPE_MAGNETIC_FIELD://磁场
+				String magentic = "磁场" + "X£º" + event.values[0] + "\n" + "Y:"
+						+ event.values[1] + "\n" + "Z:" + event.values[2]
+						+ "\n";
+				tvMagentic.setText(magentic);
+				geomagneticValues = event.values.clone();
+
+				break;
+
+			case Sensor.TYPE_ORIENTATION://方向
+				if (geomagneticValues != null && accelerometerValues != null)
+				{
+					float[] R = new float[16];
+					float[] I = new float[16];
+					float[] outR = new float[16];
+
+					sensorManager.getRotationMatrix(R, I, accelerometerValues,
+							geomagneticValues);
+					sensorManager.remapCoordinateSystem(R,
+							SensorManager.AXIS_X, SensorManager.AXIS_Y, outR);
+
+					float[] actual_orientation = new float[3];
+					//获得新的方向数据
+					actual_orientation = sensorManager.getOrientation(outR, actual_orientation);
+
+					String orientation = "方向\n" + "X" + event.values[0] + "\n"
+							+ "Y:" + event.values[1] + "\n" + "Z:"
+							+event.values[2] + "\n";
+					tvOrientation.setText(orientation);
+				}
+				break;
+
+		}
+
+	}
+    //传感器精确度变化时调用
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy)
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
