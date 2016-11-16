@@ -1,0 +1,192 @@
+1.动态引用ａｐｋ文件
+1.1 待引用的ａｐｋ
+public class MyClass
+{
+    public String getName()
+    {
+    	return "test";
+    }
+
+}
+
+1.2 引用待引用ａｐｋ的ａｐｋ中代码
+public class APKClientActivity extends Activity
+{
+	private DexClassLoader mDexClassLoader;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_apkclient);
+		//定义优化目录
+		String optimizedDirectory = Environment.getDataDirectory().toString()
+				+ "/data/" + getPackageName();
+		//第１步　装载ａｐｋ文件
+		mDexClassLoader = new DexClassLoader("/sdcard/APKLibrary.apk",
+				optimizedDirectory, null, ClassLoader.getSystemClassLoader());
+
+	}
+
+	public void onClick_InvokeGetName(View view)
+	{
+		try
+		{
+			//第２步　装载要访问的Ｊａｖａ类
+			Class c = mDexClassLoader
+					.loadClass("mobile.android.apk.library.MyClass");
+			//第３步　创建类的对象
+			Object obj = c.newInstance();
+			//第４步　用Ｊａｖａ反射技术调用getName方法
+			Method method = obj.getClass().getMethod("getName", null);
+			String name = String.valueOf(method.invoke(obj, null));
+			Toast.makeText(this, name, Toast.LENGTH_LONG).show();
+
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, "error:" + e.getMessage(), Toast.LENGTH_LONG)
+					.show();
+
+		}
+	}
+
+}
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+2.判断四大组件是否可用
+public class VerifyComponentActivity extends Activity
+{
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_verify_component);
+	}
+
+	public void onClick_VerifyActivityAction(View view)//检测activity是否可用
+	{
+		PackageManager packageManager = getPackageManager();
+
+		Intent intent = new Intent("com.android.phone.action.TOUCH_DIALER");
+		List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(
+				intent, PackageManager.GET_INTENT_FILTERS);
+		if (resolveInfos.size() == 0)
+			Toast.makeText(this, "com.android.phone.action.TOUCH_DIALER不可用",
+					Toast.LENGTH_LONG).show();
+		else
+			Toast.makeText(this, "com.android.phone.action.TOUCH_DIALER可用",
+					Toast.LENGTH_LONG).show();
+	}
+
+	public void onClick_VerifyBroadcastReceiver(View view)//检测广播接收者是否可用
+	{
+		PackageManager packageManager = getPackageManager();
+
+		Intent intent = new Intent("mobile.android.MYBROADCAST");
+
+		List<ResolveInfo> resolveInfos = packageManager
+				.queryBroadcastReceivers(intent,
+						PackageManager.GET_INTENT_FILTERS);
+
+		if (resolveInfos.size() == 0)
+			Toast.makeText(this, "mobile.android.MYBROADCAST不可用",
+					Toast.LENGTH_LONG).show();
+		else
+			Toast.makeText(this, "mobile.android.MYBROADCAST可用",
+					Toast.LENGTH_LONG).show();
+
+	}
+
+	private ServiceConnection serviceConnection = new ServiceConnection()
+	{
+
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+
+		}
+	};
+
+	public void onClick_VerifyAIDLService(View view)//检测Ｓｅｒｖｉｃｅ是否可用
+	{
+		if (!bindService(new Intent("mobile.android.MyService"),
+				serviceConnection, BIND_AUTO_CREATE))
+		{
+			Toast.makeText(this, "mobile.android.MyService不可用",
+					Toast.LENGTH_LONG).show();
+		}
+		else
+		{
+			Toast.makeText(this, "mobile.android.MyService可用",
+					Toast.LENGTH_LONG).show();
+		}
+
+	}
+
+	public void onClick_VerifyContentProvider(View view)//判断内容提供者是否可用
+	{
+		Uri uri = Uri
+				.parse("content://sms/inbox");
+        //查询记录时，为了不返回大量记录，可以指定一个跟定false的条件
+		Cursor cursor = getContentResolver().query(uri, null, "_id=-1",
+				null, null);
+		if (cursor == null)
+		{
+			Toast.makeText(this, "content://sms/inbox不可用",
+					Toast.LENGTH_LONG).show();
+		}
+		else
+		{
+			Toast.makeText(this, "content://sms/inbox可用",
+					Toast.LENGTH_LONG).show();
+		}
+
+	}
+
+}
+
+３.升级动态组件
+public class InstallComponentActivity extends Activity
+{
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_install_component);
+	}
+    public void onClick_QueryWithName(View view)//用软件名在Google　Ｐｌａｙ上查询
+    {
+		Uri uri = Uri.parse("market://search?q=新浪微博");
+		Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+		startActivity(intent);
+    }
+    public void onClick_QueryWithId(View view)//用Ｉｄ（就是package）在Google　Ｐｌａｙ上查询
+    {
+		Uri uri =Uri.parse("market://details?id=com.sina.weibo");
+		Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+		startActivity(intent);
+    }
+    public void onClick_InstallAPK(View view)//安装ａｐｋ
+    {
+    	Intent intent = new Intent();
+    	intent.setDataAndType(Uri.parse("file:///sdcard/test.apk"),"application/vnd.android.package-archive");
+    	startActivity(intent);
+
+    }
+}
+
+
+
+
+
+

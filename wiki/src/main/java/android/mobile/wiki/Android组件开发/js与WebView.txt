@@ -1,0 +1,119 @@
+public class JSActivity extends Activity
+{
+	private Button button;
+	private WebView webView;
+	private String startRandomMoveJavascript;
+	private String stopRandomMoveJavascript;
+    //由于JavaScript 异步调用Java方法，所以需要使用Handler移动按钮
+	private Handler moveHandler = new Handler()
+	{
+		@Override
+		public void handleMessage(Message msg)
+		{
+
+			int x = msg.arg1;
+			int y = msg.arg2;
+			button.layout(x, y, button.getMeasuredWidth() + x,
+					button.getMeasuredHeight() + y);
+			super.handleMessage(msg);
+		}
+
+	};
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		button = (Button) findViewById(R.id.button);
+		//第１步　创建WebView
+		webView = new WebView(this);
+		//第２步　允许解析JavaScript
+		WebSettings webSettings = webView.getSettings();
+		webSettings.setJavaScriptEnabled(true);
+
+		//第３步　将Java对象隐射到JavaScript中
+		webView.addJavascriptInterface(new Object()
+		{
+
+			public void move(int x, int y)//javaScript中调用的方法，用于一定按钮
+			{
+				Message message = new Message();
+				message.arg1 = x;
+				message.arg2 = y;
+				moveHandler.sendMessage(message);
+
+			}
+		}, "demo");
+
+		// 读取移动按钮的ｊａｖａＳｃｒｉｐｔ的代码
+		InputStream is = getResources()
+				.openRawResource(R.raw.start_random_move);
+		byte[] buffer = new byte[1024];
+		try
+		{
+			int count = is.read(buffer);
+			startRandomMoveJavascript = new String(buffer, 0, count, "utf-8");
+
+		}
+		catch (Exception e)
+		{
+		}
+		//读取停止移动按钮的　JavaScript代码
+		is = getResources().openRawResource(R.raw.stop_random_move);
+		buffer = new byte[1024];
+		try
+		{
+			int count = is.read(buffer);
+			stopRandomMoveJavascript = new String(buffer, 0, count, "utf-8");
+
+		}
+		catch (Exception e)
+		{
+		}
+
+	}
+
+	public void onClick_Move(View view)
+	{
+
+		webView.loadDataWithBaseURL(null, startRandomMoveJavascript,
+				"text/html", "utf-8", null);//执行JavaScript代码随机移动按钮
+
+
+	}
+
+	public void onClick_StopMove(View view)
+	{
+		webView.loadDataWithBaseURL(null, stopRandomMoveJavascript,
+				"text/html", "utf-8", null);//执行JavaScript代码停止按钮
+
+	}
+
+}
+//开始移动按代码
+<script language="javascript">
+var timer;
+function startTimer(){
+  timer= setInterval("randomMoveButton()",2000);
+}
+function randomMoveButton()
+{
+   var x = Math.round(Math.random() * 300);
+   var y = Math.round(100 + Math.random() * 300);
+
+   window.demo.move(x, y);
+
+}
+
+startTimer();
+</script>
+
+//停止按钮
+<script language="javascript">
+clearInterval(timer);
+</script>
+
+
+<uses-permission android:name="android.permission.INTERNET" />
+
