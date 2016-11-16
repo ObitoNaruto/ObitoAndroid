@@ -1,0 +1,351 @@
+
+1.提交HttpGet和HttpPost请求
+    @Override
+	public void onClick(View view)
+	{
+		// 测试用
+		String url = "http://192.168.17.156:8080/querybooks/QueryServlet";
+		TextView tvQueryResult = (TextView) findViewById(R.id.tvQueryResult);
+		EditText etBookName = (EditText) findViewById(R.id.etBookName);
+		HttpResponse httpResponse = null;
+		try
+		{
+			switch (view.getId())
+			{
+			// 提交HttpGet请求
+				case R.id.btnGetQuery:
+					// 向url添加请求参数
+					url += "?bookname=" + etBookName.getText().toString();
+					// 第1步 创建HttpGet对象
+					HttpGet httpGet = new HttpGet(url);
+					//第2步 使用execute方法发送HTTP GET请求，并返回HttpResponse对象
+					httpResponse = new DefaultHttpClient().execute(httpGet);
+					// 判断网络状态
+					if (httpResponse.getStatusLine().getStatusCode() == 200)
+					{
+						// 第3步 使用getEntity方法获得返回结果
+						String result = EntityUtils.toString(httpResponse
+								.getEntity());
+						// 去掉返回结果中的"\r"字符，否则会在结果字符串后面显示一个小方格
+						tvQueryResult.setText(result.replaceAll("\r", ""));
+					}
+					break;
+				// Http POST
+				case R.id.btnPostQuery:
+					// 第1步 创建HTTPPost对象
+					HttpPost httpPost = new HttpPost(url);
+					// 设置HTTP POST请求参数必须用NameValuePair对象
+					List<NameValuePair> params = new ArrayList<NameValuePair>();
+					params.add(new BasicNameValuePair("bookname", etBookName
+							.getText().toString()));
+					// 设置HttpＰｏｓｔ请求参数
+					httpPost.setEntity(new UrlEncodedFormEntity(params,
+							HTTP.UTF_8));
+					// 第２步：执行
+					httpResponse = new DefaultHttpClient().execute(httpPost);
+					if (httpResponse.getStatusLine().getStatusCode() == 200)
+					{
+						// 第３步返回结果
+						String result = EntityUtils.toString(httpResponse
+								.getEntity());
+						// 去掉返回结果中的"\r"字符，否则会在结果字符串后面显示一个小方格
+						tvQueryResult.setText(result.replaceAll("\r", ""));
+					}
+					break;
+			}
+		}
+		catch (Exception e)
+		{
+			tvQueryResult.setText(e.getMessage());
+		}
+	}
+
+	<uses-permission android:name="android.permission.INTERNET"></uses-permission>
+２．上传文件
+public class Main extends Activity implements OnFileBrowserListener
+{
+
+	@Override
+	public void onDirItemClick(String path)
+	{
+
+	}
+
+	@Override
+	public void onFileItemClick(String filename)
+	{
+		String uploadUrl = "http://192.168.17.104:8080/upload/UploadServlet";
+		String end = "\r\n";
+		String twoHyphens = "--";／／两个连字符
+		String boundary = "******";／／分解符的字符串
+		try
+		{
+
+
+			URL url = new URL(uploadUrl);
+			HttpURLConnection httpURLConnection = (HttpURLConnection) url
+					.openConnection();
+		    //要想使用InputStream和OutputStream必须用以下代码
+			httpURLConnection.setDoInput(true);
+			httpURLConnection.setDoOutput(true);
+			httpURLConnection.setUseCaches(false);
+			//设置ＨＴＴＰ请求方法，方法名必须大写
+			httpURLConnection.setRequestMethod("POST");
+			httpURLConnection.setRequestProperty("Connection", "Keep-Alive");
+			httpURLConnection.setRequestProperty("Charset", "UTF-8");
+			//必须在Content-Type请求头中指定分解符中的任意字符
+			httpURLConnection.setRequestProperty("Content-Type",
+					"multipart/form-data;boundary=" + boundary);
+            //获得OutputStream对象，准备上传文件
+			DataOutputStream dos = new DataOutputStream(
+					httpURLConnection.getOutputStream());
+			//设置分解符，加end表示单独一行
+			dos.writeBytes(twoHyphens + boundary + end);
+			//设置上传文件相关信息
+			dos.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\""
+					+ filename.substring(filename.lastIndexOf("/") + 1)
+					+ "\""
+					+ end);
+			//在上传文件信息与文件内容之间必须有一个空行
+			dos.writeBytes(end);
+
+			FileInputStream fis = new FileInputStream(filename);
+			byte[] buffer = new byte[8192]; // 8k
+			int count = 0;
+			while ((count = fis.read(buffer)) != -1)
+			{
+				dos.write(buffer, 0, count);
+
+			}
+			fis.close();
+
+			dos.writeBytes(end);
+			dos.writeBytes(twoHyphens + boundary + twoHyphens + end);
+			dos.flush();
+
+			InputStream is = httpURLConnection.getInputStream();
+			InputStreamReader isr = new InputStreamReader(is, "utf-8");
+			BufferedReader br = new BufferedReader(isr);
+			String result = br.readLine();
+
+			Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+			dos.close();
+			is.close();
+
+		}
+		catch (Exception e)
+		{
+			setTitle(e.getMessage());
+		}
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		FileBrowser fileBrowser = (FileBrowser) findViewById(R.id.filebrowser);
+		fileBrowser.setOnFileBrowserListener(this);
+	}
+}
+
+３．下载管理
+public class DMActivity extends Activity
+{
+	private DownloadManager mDownloadManager;
+	private long mDownloadReference;//当前下载任务的引用，通过该引用可以操作下载任务
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_dm);
+		mDownloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);//获取DownloadManager对象
+		IntentFilter filter = new IntentFilter(
+				DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+		//创建监听下载完成的广播接收器
+		DownloadCompleteReceiver downloadReceiver = new DownloadCompleteReceiver();
+		registerReceiver(downloadReceiver, filter);／／注册广播器
+	}
+
+	public void onClick_DownloadFile(View view)
+	{
+
+		Uri uri = Uri.parse("http://img31.ddimg.cn/71/7/23043311-1_w.jpg");//指定要下载的文件
+		DownloadManager.Request request = new DownloadManager.Request(uri);//创建下载任务对象
+	   // request.setNotificationVisibility(Request.VISIBILITY_HIDDEN);
+	   //指定网络类型，该功能可以限制在某一种上网方式中下载文件
+		request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI
+				| DownloadManager.Request.NETWORK_MOBILE);
+
+		// 设置下载标题，该标题会在通知栏显示
+		request.setTitle("下载图像");
+		// 设置下载描述，该描述会在通知中显示
+		request.setDescription("正在使用DownloadManager下载图像");
+		// 指定图像文件下载大本地的目录和文件名
+
+		request.setDestinationInExternalFilesDir(this, "test/images",
+				"download_image.jpg");
+
+		//将下载任务加入队列，并返回下载任务的引用
+		mDownloadReference = mDownloadManager.enqueue(request);
+		setTitle("正在下载图像...");
+
+	}
+
+	public void onClick_CancelDownload(View view)
+	{
+		mDownloadManager.remove(mDownloadReference);//取消指向的下载任务
+
+	}
+
+	public void onClick_ShowDownloadHistory(View view)
+	{
+		//显示下载历史
+		Intent intent = new Intent();
+		intent.setAction(DownloadManager.ACTION_VIEW_DOWNLOADS);
+		startActivity(intent);
+
+	}
+
+	public void onClick_QueryDownloadStatus(View view)
+	{
+		Query myDownloadQuery = new Query();//创建用于查询下载状态的DownloadManager.Query对象
+		// 设置查询条件，也就是指定下载任务引用
+		myDownloadQuery.setFilterById(mDownloadReference);
+
+        //开始查询下载状态
+		Cursor cursor = mDownloadManager.query(myDownloadQuery);
+		if (cursor.moveToFirst())
+		{
+			checkStatus(cursor);//如果下载任务存在，处理查询状态
+		}
+	}
+
+	private void checkStatus(Cursor cursor)
+	{
+
+
+		int columnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+		int status = cursor.getInt(columnIndex);//获取下载状态的代码
+
+		int columnReason = cursor.getColumnIndex(DownloadManager.COLUMN_REASON);
+		int reason = cursor.getInt(columnReason);//下载原因的代码
+
+		int filenameIndex = cursor
+				.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME);//获取下载文件存储在本地的文件名所在列的索引
+		String filename = cursor.getString(filenameIndex);
+
+		String statusText = "";
+		String reasonText = "";
+
+		switch (status)//根据状态码生成状态文本
+		{
+			case DownloadManager.STATUS_FAILED://下载失败
+				statusText = "STATUS_FAILED";
+				switch (reason)//处理下载失败的原因
+				{
+					case DownloadManager.ERROR_CANNOT_RESUME:
+						reasonText = "ERROR_CANNOT_RESUME";
+						break;
+					case DownloadManager.ERROR_DEVICE_NOT_FOUND:
+						reasonText = "ERROR_DEVICE_NOT_FOUND";
+						break;
+					case DownloadManager.ERROR_FILE_ALREADY_EXISTS:
+						reasonText = "ERROR_FILE_ALREADY_EXISTS";
+						break;
+					case DownloadManager.ERROR_FILE_ERROR:
+						reasonText = "ERROR_FILE_ERROR";
+						break;
+					case DownloadManager.ERROR_HTTP_DATA_ERROR:
+						reasonText = "ERROR_HTTP_DATA_ERROR";
+						break;
+					case DownloadManager.ERROR_INSUFFICIENT_SPACE:
+						reasonText = "ERROR_INSUFFICIENT_SPACE";
+						break;
+					case DownloadManager.ERROR_TOO_MANY_REDIRECTS:
+						reasonText = "ERROR_TOO_MANY_REDIRECTS";
+						break;
+					case DownloadManager.ERROR_UNHANDLED_HTTP_CODE:
+						reasonText = "ERROR_UNHANDLED_HTTP_CODE";
+						break;
+					case DownloadManager.ERROR_UNKNOWN:
+						reasonText = "ERROR_UNKNOWN";
+						break;
+				}
+				break;
+			case DownloadManager.STATUS_PAUSED://下载暂停
+				statusText = "STATUS_PAUSED";
+				switch (reason)
+				{
+					case DownloadManager.PAUSED_QUEUED_FOR_WIFI:
+						reasonText = "PAUSED_QUEUED_FOR_WIFI";
+						break;
+					case DownloadManager.PAUSED_UNKNOWN:
+						reasonText = "PAUSED_UNKNOWN";
+						break;
+					case DownloadManager.PAUSED_WAITING_FOR_NETWORK:
+						reasonText = "PAUSED_WAITING_FOR_NETWORK";
+						break;
+					case DownloadManager.PAUSED_WAITING_TO_RETRY:
+						reasonText = "PAUSED_WAITING_TO_RETRY";
+						break;
+				}
+				break;
+			case DownloadManager.STATUS_PENDING://正在pending文件
+				statusText = "STATUS_PENDING";
+				break;
+			case DownloadManager.STATUS_RUNNING://下载正在进行时
+				statusText = "STATUS_RUNNING";
+				break;
+			case DownloadManager.STATUS_SUCCESSFUL://下载成功
+				statusText = "STATUS_SUCCESSFUL";
+				reasonText = "Filename:\n" + filename;
+				break;
+		}
+
+		Toast toast = Toast.makeText(this, statusText + "\n" + reasonText,
+				Toast.LENGTH_LONG);
+
+		toast.show();
+
+	}
+
+	private class DownloadCompleteReceiver extends BroadcastReceiver
+	{
+
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			if (intent.getAction().equals(
+					DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+			{
+				long referenceId = intent.getLongExtra(
+						DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+				if (mDownloadReference == referenceId)
+				{
+					setTitle("图像文件下载完成");
+				}
+			}
+		}
+
+	}
+}
+
+<uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+   <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
+
+   备注：文件下载位置，/sdcard/Android/data/package/...
+
+
+4.WI-FI Direct
+
+5.Internet电话
+
+
+
+
+
+
