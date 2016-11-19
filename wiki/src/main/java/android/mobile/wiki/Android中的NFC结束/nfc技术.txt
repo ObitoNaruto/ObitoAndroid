@@ -1,0 +1,1538 @@
+1.NDEF与非NDEF数据
+２．三重过滤机制
+过滤顺序:NDEF_DISCOVERED->TECH_DISCOVERED->TAG_DISCOVERED
+3.编写NFC程序的基本步骤
+３.1设置权限
+<uses-permission android:name="android.permission.NFC" />
+3.2限制Android版本
+android:minSdkVersion="1４"
+3.3限制安装的设备
+<uses-feature android:name="android.hardware.nfc" android:required="true" />
+3.4定义可接收TAG的Activity
+3.5处理业务逻辑
+
+4.向NFC标签写入挨冻Android应用程序的消息
+４．１　
+public class InstalledApplicationListActivity extends ListActivity implements
+		OnItemClickListener
+{
+	private List<String> mPackages = new ArrayList<String>();
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+
+		PackageManager packageManager = getPackageManager();
+		List<PackageInfo> packageInfos = packageManager
+				.getInstalledPackages(PackageManager.GET_ACTIVITIES);//获取系统中已安装的所有应用程序的信息，每一个PackageInfo对象表示一个应用程序
+		for (PackageInfo packageInfo : packageInfos)
+		{
+
+			mPackages.add(packageInfo.applicationInfo.loadLabel(packageManager)
+					+ "\n" + packageInfo.packageName);
+		}
+
+		ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this,
+				android.R.layout.simple_list_item_1, android.R.id.text1,
+				mPackages);
+		setListAdapter(arrayAdapter);
+		getListView().setOnItemClickListener(this);
+	}
+
+	@Override
+	public void onItemClick(AdapterView<?> parent, View view, int position,
+			long id)
+	{
+		Intent intent = new Intent();
+		intent.putExtra("package_name", mPackages.get(position));
+		setResult(1, intent);
+		finish();
+
+	}
+
+}
+
+4.2
+public class AutoRunApplicationActivity extends Activity
+{
+	private Button mSelectAutoRunApplication;
+	private String mPackageName;
+	private NfcAdapter mNfcAdapter;
+	private PendingIntent mPendingIntent;
+
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+
+		setContentView(R.layout.activity_auto_run_application);
+		mSelectAutoRunApplication = (Button) findViewById(R.id.button_select_auto_run_application);
+
+		mNfcAdapter = mNfcAdapter.getDefaultAdapter(this);//第一步：默认获取NfcAdapter对象
+		mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
+				getClass()), 0);//第二步：创建与当前Activity关联的PendingIntent
+
+	}
+
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+		if (mNfcAdapter != null)
+		       //第三步：在窗口获取焦点时会提升当前窗口处理NFC标签的优先级
+			mNfcAdapter.enableForegroundDispatch(this, mPendingIntent, null, null);
+	}
+
+	@Override
+	public void onNewIntent(Intent intent)
+	{
+		if (mPackageName == null)
+			return;
+        //获取表示当前NFC标签的Ｔａｇ的对象
+		Tag detectedTag = intent.getParcelableExtra(mNfcAdapter.EXTRA_TAG);
+		writeNFCTag(detectedTag);//向NFC标签写入Package
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+		if (mNfcAdapter != null)
+			mNfcAdapter.disableForegroundDispatch(this);//第四步：当窗口失去焦点后，应恢复系统处理NFC标签的优先级，否则不会读取nfc标签中应用package名称自动启动应用程序
+
+	}
+
+	public void onClick_SelectAutoRunApplication(View view)
+	{
+		Intent intent = new Intent(this, InstalledApplicationListActivity.class);
+		startActivityForResult(intent, 0);
+	}
+
+	public void writeNFCTag(Tag tag)
+	{
+		if (tag == null)//必须指定一个Tag对象
+		{
+			Toast.makeText(this, "NFC Tag未建立连接", Toast.LENGTH_LONG).show();
+			return;
+		}
+        //创建NdefMessage对象
+		NdefMessage ndefMessage = new NdefMessage(new NdefRecord[]
+		{ NdefRecord.createApplicationRecord(mPackageName) });//创建一个封装package的NdefRecord的对象，当写入NFC标签后，然后再用系统NFC读NFC标签才会启动对应的应用程序
+		int size = ndefMessage.toByteArray().length;
+
+		try
+		{
+
+			Ndef ndef = Ndef.get(tag);//获取Ndef对象
+			if (ndef != null)//处理NDEF格式的数据
+			{
+				ndef.connect();//进行连接
+
+				if (!ndef.isWritable())//NDEF标签不是可写的（只读的）
+				{
+					Toast.makeText(this, "NFC Tag是只读的", Toast.LENGTH_LONG)
+							.show();
+					return;
+				}
+				if (ndef.getMaxSize() < size)
+				{
+					Toast.makeText(this, "NFC Tag的控件不够", Toast.LENGTH_LONG)
+							.show();
+					return;
+				}
+
+				ndef.writeNdefMessage(ndefMessage);//向NFC标签写入数据
+				Toast.makeText(this, "已成功写入数据", Toast.LENGTH_LONG).show();
+			}
+			else
+			{
+				NdefFormatable format = NdefFormatable.get(tag);//创建NdefFormatable对象
+				if (format != null)
+				{
+					try
+					{
+						format.connect();//进行连接
+						format.format(ndefMessage);//重新格式化NFC标签，并写入数据
+						Toast.makeText(this, "已成功写入数据", Toast.LENGTH_LONG).show();
+					}
+					catch (Exception e)
+					{
+						Toast.makeText(this, "写入NDEF格式数据失败", Toast.LENGTH_LONG).show();
+
+					}
+				}
+				else
+				{
+					Toast.makeText(this, "NFC标签部支持NDEF格式", Toast.LENGTH_LONG).show();
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+		}
+
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if (resultCode == 1)
+		{
+			mSelectAutoRunApplication.setText(data.getExtras().getString(
+					"package_name"));
+			String temp = mSelectAutoRunApplication.getText().toString();
+			mPackageName = temp.substring(temp.indexOf("\n") + 1);
+
+		}
+
+	}
+
+}
+
+4.3
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.auto.run.application"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="15" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".AutoRunApplicationActivity"
+            android:label="@string/title_activity_auto_run_application"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".InstalledApplicationListActivity"
+            android:label="@string/title_activity_installed_application_list"
+            android:screenOrientation="portrait" />
+
+    </application>
+
+</manifest>
+
+5.手机自动打开网页
+
+NdefMessage ndefMessage = new NdefMessage(new NdefRecord[]{ NdefRecord.createUri(Uri.parse("http://blog.csdn.net/nokiaguy")) });
+其他代码与４类似
+
+6.读写NFC标签中的文本
+
+6.1 TextRecord类
+public class TextRecord
+{
+	private final String mText;//存储解析出来的文本
+
+	private TextRecord(String text)//不允许直接创建TextRecord对象
+	{
+
+		mText = text;
+	}
+
+	public String getText()
+	{
+		return mText;
+	}
+
+
+	//  将文本数据从NdefRecord对象中(payload)解析出来
+	public static TextRecord parse(NdefRecord record)
+	{
+		//验证TNF是否为 NdefRecord.TNF_WELL_KNOWN
+		if(record.getTnf() != NdefRecord.TNF_WELL_KNOWN)
+			return null;
+		//验证可变长度类型是否是RTD_TEXT
+		if(!Arrays.equals(record.getType(), NdefRecord.RTD_TEXT))
+			return null;
+
+		try
+		{
+			//获取payload
+			byte[] payload = record.getPayload();
+			/*
+			 * payload[0] contains the "Status Byte Encodings" field, per the
+			 * NFC Forum "Text Record Type Definition" section 3.2.1.
+			 *
+			 * bit7 is the Text Encoding Field.
+			 *
+			 * if (Bit_7 == 0): The text is encoded in UTF-8 if (Bit_7 == 1):
+			 * The text is encoded in UTF16
+			 *
+			 * Bit_6 is reserved for future use and must be set to zero.
+			 *
+			 * Bits 5 to 0 are the length of the IANA language code.
+			 */
+			 //处理bit7
+			String textEncoding = ((payload[0] & 0x80) == 0) ? "UTF-8"
+					: "UTF-16";
+			//处理bit 0到bit5，表示语言编码成都（字节数）
+			int languageCodeLength = payload[0] & 0x3f;
+			String languageCode = new String(payload, 1, languageCodeLength,
+					"US-ASCII");
+		    //解析出实际的文本数据
+			String text = new String(payload, languageCodeLength + 1,
+					payload.length - languageCodeLength - 1, textEncoding);
+			//创建一个TextRecord对象，并返回该对象
+			return new TextRecord(text);
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			// should never happen unless we get a malformed tag.
+			throw new IllegalArgumentException(e);
+		}
+	}
+
+
+}
+6.2 ReadWriteTextMainActivity
+public class ReadWriteTextMainActivity extends Activity
+{
+	private TextView mInputText;
+	private String mText;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_read_write_text_main);
+		mInputText = (TextView)findViewById(R.id.textview_input_text);
+
+	}
+
+	public void onClick_InputText(View view)//当即输入要写入文本按钮
+	{
+		Intent intent = new Intent(this, InputTextActivity.class);
+		startActivityForResult(intent, 1);
+
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if(requestCode == 1 && resultCode == 1)
+		{
+			mText = data.getStringExtra("text");//获取要写入的NFC标签的文本
+			mInputText.setText(mText);
+		}
+	}
+    //当窗口的创建模式是singleTop或者singleTask时调用，用于取代onCreate
+    //将NFC标签靠近手机背面，当NFC连接建立后就会调用此方法
+	@Override
+	public void onNewIntent(Intent intent)
+	{
+		if (mText == null)//如果未设置要写入的文本，则读取NFC标签的文本数据
+		{
+			Intent myIntent = new Intent(this, ShowNFCTagContentActivity.class);
+			myIntent.putExtras(intent);
+			myIntent.setAction(NfcAdapter.ACTION_NDEF_DISCOVERED);
+			startActivity(myIntent);
+		}
+		else//将指定的文本写入NFC标签
+		{
+			Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);//获取Tag对象
+			//创建NdefMessage和NdefRecord对象
+			NdefMessage ndefMessage = new NdefMessage(new NdefRecord[]
+			{ createTextRecord(mText) });
+
+			if(writeTag(ndefMessage, tag))//开始向标签写入文本
+			{
+				mText = null;//成功写入文本
+				mInputText.setText("");
+			}
+
+		}
+
+	}
+    //创建一个封装要写入的文本的NdefRecord对象
+	public NdefRecord createTextRecord(String text)
+	{
+		byte[] langBytes = Locale.CHINA.getLanguage().getBytes(
+				Charset.forName("US-ASCII"));//生成语言编码的字节数组，payload的１至ｎ个字节用于存储语言编码
+		Charset utfEncoding = Charset.forName("UTF-8");
+		byte[] textBytes = text.getBytes(utfEncoding);//将要写入的文本已UTF-8编码
+		//由于已经确定了文本的编码格式UTF-8，所以直接将payload的第一个字节设为0
+		//如果编码格式为UTF-16，则该值应为0x80或者1<<7
+		int utfBit = 0;
+		//定义和初始化字节
+		char status = (char) (utfBit + langBytes.length);
+		//创建存储payload的字节数组（１个状态字节，n个语言编码字节,其他的是实际写入的文本）
+		byte[] data = new byte[1 + langBytes.length + textBytes.length];
+		//设置状态字节
+		data[0] = (byte) status;
+		//设置语言编码
+		System.arraycopy(langBytes, 0, data, 1, langBytes.length);
+		//设置实际写入的文本
+		System.arraycopy(textBytes, 0, data, 1 + langBytes.length,
+				textBytes.length);
+		//根据前面设置的payload创建的NdefRecord对象，其中NdefRecord构造方法中第３个参数是ID,
+		//这里设为长为零的字节数组（也可以为null）,相当于未指定NdefRecord的id
+		NdefRecord record = new NdefRecord(NdefRecord.TNF_WELL_KNOWN,
+				NdefRecord.RTD_TEXT, new byte[0], data);
+		return record;
+	}
+    //将NdefMessage对象写入NFC标签，成功写入返回true,否则返回false
+	boolean writeTag(NdefMessage message, Tag tag)
+	{
+		int size = message.toByteArray().length;
+
+		try
+		{
+
+			Ndef ndef = Ndef.get(tag);//获取Ndef对象
+			if (ndef != null)//下面的代码向NDEF格式的NFC标签写入数据
+			{
+				ndef.connect();//允许NFC标签进行io操作
+
+				if (!ndef.isWritable())
+				{
+					Toast.makeText(this, "NFC Tag只读的", Toast.LENGTH_LONG)
+							.show();
+					return false;
+
+				}
+				if (ndef.getMaxSize() < size)
+				{
+					Toast.makeText(this, "NFC Tag空间不足", Toast.LENGTH_LONG)
+							.show();
+					return false;
+				}
+
+				ndef.writeNdefMessage(message);//写入数据
+				Toast.makeText(this, "成功写入", Toast.LENGTH_LONG).show();
+				return true;
+
+			}
+			else
+			{
+			    //获取可以格式化和向NFC标签写入数据的NdefFormatable对象
+				NdefFormatable format = NdefFormatable.get(tag);
+				if (format != null)//向非NDEF格式或未格式化的NFC标签写入NDEF格式的数据
+				{
+					try
+					{
+						format.connect();
+						format.format(message);//格式化并写入NDEF格式的数据
+						Toast.makeText(this, "成功写入数据", Toast.LENGTH_LONG)
+								.show();
+						return true;
+
+					}
+					catch (Exception e)
+					{
+						Toast.makeText(this, "写入NDEF格式数据失败", Toast.LENGTH_LONG)
+								.show();
+						return false;
+					}
+				}
+				else
+				{
+					Toast.makeText(this, "NFC标签不支持NDEF格式", Toast.LENGTH_LONG)
+							.show();
+					return false;
+
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+			return false;
+		}
+
+	}
+}
+
+6.3配置
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.read.write.text"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="15" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".ReadWriteTextMainActivity"
+            android:label="读写NFC标签的纯文本数据"
+            android:launchMode="singleTask" >//避免重复创建ReadWriteTextMainActivity的实例
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            //需要指定可以处理NDEF标签的action（无法处理其他类型的action）
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />//只能处理NDEF文本格式的标签
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ShowNFCTagContentActivity"
+            android:label="显示NFC标签内容"
+            android:launchMode="singleTask" />
+
+        <activity
+            android:name=".InputTextActivity"
+            android:label="向NFC标签写入文本" />
+
+    </application>
+
+</manifest>
+
+6.4 ShowNFCTagContentActivity
+public class ShowNFCTagContentActivity extends Activity
+{
+	private TextView mTagContent;
+	private Tag mDetectedTag;
+	private String mTagText;
+
+	private void readAndShowData(Intent intent)
+	{
+		//获取Tag对象
+		mDetectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+		//创建Ndef对象
+		Ndef ndef = Ndef.get(mDetectedTag);
+		//获取NFC标签的类型和最大数据容量
+		mTagText = ndef.getType() + "\n最大数据容量" + ndef.getMaxSize()
+				+ " bytes\n\n";
+		readNFCTag();//读取NFC标签的数据并解析
+		mTagContent.setText(mTagText);
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_show_nfctag_content);
+		//获取Tag对象
+        mDetectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        //创建Ndef对象
+        Ndef ndef = Ndef.get(mDetectedTag);
+        //获取NFC标签的类型和最大数据容量
+        mTagText = ndef.getType() + "\n最大数据容量" + ndef.getMaxSize()
+        				+ " bytes\n\n";
+        readNFCTag();//读取NFC标签的数据并解析
+        mTagContent.setText(mTagText);
+
+	}
+	private void readNFCTag()//读取NFC数据并解析
+	{
+
+		if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()))//判断是否为ACTION_NDEF_DISCOVERED
+		{
+
+			Parcelable[] rawMsgs = getIntent().getParcelableArrayExtra(
+					NfcAdapter.EXTRA_NDEF_MESSAGES);
+
+			NdefMessage msgs[] = null;
+			int contentSize = 0;
+			if (rawMsgs != null)
+			{
+				msgs = new NdefMessage[rawMsgs.length];
+                //ＮＦＣ标签可能存储了多个NdefMessage对象，但通常只有一个NdefMessage对象
+				for (int i = 0; i < rawMsgs.length; i++)
+				{
+					//将Parcelable对象转换成NdefMessage对象
+					msgs[i] = (NdefMessage) rawMsgs[i];
+					//计算数据总长度
+					contentSize += msgs[i].toByteArray().length;
+
+				}
+			}
+			try
+			{
+
+				if (msgs != null)
+				{
+					//在这里只考虑第一个NdefRecord兑对象，如果实现通用的软件，应考虑所有的
+					NdefRecord record = msgs[0].getRecords()[0];
+                     //分析第一个NdefRecord对象中的数据，并创建TextRecord对象
+					TextRecord textRecord = TextRecord.parse(msgs[0]
+							.getRecords()[0]);
+                    //获取实际的文本数据和数据占用的大小，这些数据会被显示到窗口中
+					mTagText += textRecord.getText() + "\n\n纯文本\n"
+							+ contentSize + " bytes";
+
+				}
+
+			}
+			catch (Exception e)
+			{
+				mTagContent.setText(e.getMessage());
+			}
+		}
+
+	}
+}
+
+7.读写NFC标签中的Ｕｒｉ
+7.1UriRcord类
+public class UriRecord//从NdefRecord对象中解析出实际的Ｕｒｉ
+{
+	public static final Map<Byte, String> URI_PREFIX_MAP = new HashMap<Byte, String>();//映射Uri前缀和对应的值
+	static
+	{
+		//设置NDEF　Uri规范支持的Uri前缀，在解析payload时，需要根据payload第一个字节定位响应的Uri前缀
+		URI_PREFIX_MAP.put((byte) 0x00, "");
+		URI_PREFIX_MAP.put((byte) 0x01, "http://www.");
+		URI_PREFIX_MAP.put((byte) 0x02, "https://www.");
+		URI_PREFIX_MAP.put((byte) 0x03, "http://");
+		URI_PREFIX_MAP.put((byte) 0x04, "https://");
+		URI_PREFIX_MAP.put((byte) 0x05, "tel:");
+		URI_PREFIX_MAP.put((byte) 0x06, "mailto:");
+		URI_PREFIX_MAP.put((byte) 0x07, "ftp://anonymous:anonymous@");
+		URI_PREFIX_MAP.put((byte) 0x08, "ftp://ftp.");
+		URI_PREFIX_MAP.put((byte) 0x09, "ftps://");
+		URI_PREFIX_MAP.put((byte) 0x0A, "sftp://");
+		URI_PREFIX_MAP.put((byte) 0x0B, "smb://");
+		URI_PREFIX_MAP.put((byte) 0x0C, "nfs://");
+		URI_PREFIX_MAP.put((byte) 0x0D, "ftp://");
+		URI_PREFIX_MAP.put((byte) 0x0E, "dav://");
+		URI_PREFIX_MAP.put((byte) 0x0F, "news:");
+		URI_PREFIX_MAP.put((byte) 0x10, "telnet://");
+		URI_PREFIX_MAP.put((byte) 0x11, "imap:");
+		URI_PREFIX_MAP.put((byte) 0x12, "rtsp://");
+		URI_PREFIX_MAP.put((byte) 0x13, "urn:");
+		URI_PREFIX_MAP.put((byte) 0x14, "pop:");
+		URI_PREFIX_MAP.put((byte) 0x15, "sip:");
+		URI_PREFIX_MAP.put((byte) 0x16, "sips:");
+		URI_PREFIX_MAP.put((byte) 0x17, "tftp:");
+		URI_PREFIX_MAP.put((byte) 0x18, "btspp://");
+		URI_PREFIX_MAP.put((byte) 0x19, "btl2cap://");
+		URI_PREFIX_MAP.put((byte) 0x1A, "btgoep://");
+		URI_PREFIX_MAP.put((byte) 0x1B, "tcpobex://");
+		URI_PREFIX_MAP.put((byte) 0x1C, "irdaobex://");
+		URI_PREFIX_MAP.put((byte) 0x1D, "file://");
+		URI_PREFIX_MAP.put((byte) 0x1E, "urn:epc:id:");
+		URI_PREFIX_MAP.put((byte) 0x1F, "urn:epc:tag:");
+		URI_PREFIX_MAP.put((byte) 0x20, "urn:epc:pat:");
+		URI_PREFIX_MAP.put((byte) 0x21, "urn:epc:raw:");
+		URI_PREFIX_MAP.put((byte) 0x22, "urn:epc:");
+		URI_PREFIX_MAP.put((byte) 0x23, "urn:nfc:");
+	}
+
+	private final Uri mUri;
+
+	private UriRecord(Uri uri)
+	{
+		this.mUri = uri;
+	}
+
+	public Uri getUri()
+	{
+		return mUri;
+	}
+
+    //分析NdefRecord对象中的payload，并创建封装Uri的UriRecord对象
+	public static UriRecord parse(NdefRecord record)
+	{
+		//获取TNF
+		short tnf = record.getTnf();
+		//TNF是TNF_WELL_KNOWN，也就是使用了URi前缀
+		if (tnf == NdefRecord.TNF_WELL_KNOWN)
+		{
+			return parseWellKnown(record);
+		}
+		else if (tnf == NdefRecord.TNF_ABSOLUTE_URI)//TNF是TNF_ABSOLUTE_URI，也就是绝对Uri(不使用Uri前缀)
+		{
+			return parseAbsolute(record);
+		}
+		throw new IllegalArgumentException("Unknown TNF " + tnf);
+	}
+
+	/** Parse and absolute URI record */
+	private static UriRecord parseAbsolute(NdefRecord record)
+	{
+		byte[] payload = record.getPayload();
+		//直接将payload转成Uri
+		Uri uri = Uri.parse(new String(payload, Charset.forName("UTF-8")));
+		return new UriRecord(uri);
+	}
+
+	/** Parse an well known URI record */
+	private static UriRecord parseWellKnown(NdefRecord record)
+	{
+		if (!Arrays.equals(record.getType(), NdefRecord.RTD_URI))//判断RTD是否为RTD_URI
+			return null;
+		byte[] payload = record.getPayload();
+		/*
+		 * payload[0] contains the URI Identifier Code, per the NFC Forum
+		 * "URI Record Type Definition" section 3.2.2.
+		 *
+		 * payload[1]...payload[payload.length - 1] contains the rest of the
+		 * URI.
+		 */
+        //根据Uri标识码获取URi的前缀
+		String prefix = URI_PREFIX_MAP.get(payload[0]);
+        //获取Uri前缀占用的字节数
+		byte[] prefixBytes = prefix.getBytes(Charset.forName("UTF-8"));
+        //为为容纳完整的Uri创建一个byte数组
+		byte[] fullUri = new byte[prefixBytes.length + payload.length - 1];
+		//下面代码将Uri的其余部分组合，形成一个完整的Uri
+		System.arraycopy(prefixBytes, 0, fullUri, 0, prefixBytes.length);
+		System.arraycopy(payload, 1, fullUri, prefixBytes.length,
+				payload.length - 1);
+        //根据解析出来的Uri创建Uri对象
+		Uri uri = Uri.parse(new String(fullUri, Charset.forName("UTF-8")));
+		return new UriRecord(uri);
+	}
+
+
+}
+
+7.2读写ReadWriteUriMainActivity
+public class ReadWriteUriMainActivity extends Activity
+{
+	private TextView mSelectUri;
+	private String mUri;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_read_write_uri_main);
+		mSelectUri = (TextView)findViewById(R.id.textview_uri);
+
+	}
+
+	public void onClick_SelectUri(View view)
+	{
+		Intent intent = new Intent(this, UriListActivity.class);
+		startActivityForResult(intent, 1);
+
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if(requestCode == 1 && resultCode == 1)
+		{
+			mUri = data.getStringExtra("uri");
+			mSelectUri.setText(mUri);
+		}
+	}
+
+	@Override
+	public void onNewIntent(Intent intent)
+	{
+		if (mUri == null)
+		{
+			Intent myIntent = new Intent(this, ShowNFCTagContentActivity.class);
+			myIntent.putExtras(intent);
+			myIntent.setAction(NfcAdapter.ACTION_NDEF_DISCOVERED);
+			startActivity(myIntent);
+		}
+		else
+		{
+			Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+			NdefMessage ndefMessage = new NdefMessage(new NdefRecord[]
+			{ createUriRecord(mUri) });
+
+			if(writeTag(ndefMessage, tag))
+			{
+				mUri = null;
+				mSelectUri.setText("");
+			}
+
+		}
+
+	}
+
+	public NdefRecord createUriRecord(String uriStr)
+	{
+
+		byte prefix = 0;
+		for (Byte b : UriRecord.URI_PREFIX_MAP.keySet())
+		{
+			String prefixStr = UriRecord.URI_PREFIX_MAP.get(b).toLowerCase();
+			if ("".equals(prefixStr))
+				continue;
+			if (uriStr.toLowerCase().startsWith(prefixStr))
+			{
+				prefix = b;
+				//截取完整的Uri中除了Uri前缀的其他部分
+				uriStr = uriStr.substring(prefixStr.length());
+				break;
+			}
+		}
+        //为存储在NFC标签中的Uri创建一个byte数组
+		byte[] data = new byte[1 + uriStr.length()];
+		//指定第一个字节为Uri前缀的标识代码
+		data[0] = prefix;
+		//将Uri剩余的部分复制到data字节数组中
+		System.arraycopy(uriStr.getBytes(), 0, data, 1, uriStr.length());
+		//创建封装NdefRecord对象
+		NdefRecord record = new NdefRecord(NdefRecord.TNF_WELL_KNOWN,
+				NdefRecord.RTD_URI, new byte[0], data);
+
+		return record;
+	}
+
+	boolean writeTag(NdefMessage message, Tag tag)
+	{
+		int size = message.toByteArray().length;
+
+		try
+		{
+
+			Ndef ndef = Ndef.get(tag);
+			if (ndef != null)
+			{
+				ndef.connect();
+
+				if (!ndef.isWritable())
+				{
+					Toast.makeText(this, "NFC Tag只读的¡", Toast.LENGTH_LONG)
+							.show();
+					return false;
+
+				}
+				if (ndef.getMaxSize() < size)
+				{
+					Toast.makeText(this, "NFC Tag控件不够¡", Toast.LENGTH_LONG)
+							.show();
+					return false;
+				}
+
+				ndef.writeNdefMessage(message);
+				Toast.makeText(this, "写入成功", Toast.LENGTH_LONG).show();
+				return true;
+
+			}
+			else
+			{
+				NdefFormatable format = NdefFormatable.get(tag);
+				if (format != null)
+				{
+					try
+					{
+						format.connect();
+						format.format(message);
+						Toast.makeText(this, "ÒÑ³É¹¦Ð´ÈëÊý¾Ý£¡", Toast.LENGTH_LONG)
+								.show();
+						return true;
+
+					}
+					catch (Exception e)
+					{
+						Toast.makeText(this, "Ð´ÈëNDEF¸ñÊ½Êý¾ÝÊ§°Ü£¡", Toast.LENGTH_LONG)
+								.show();
+						return false;
+					}
+				}
+				else
+				{
+					Toast.makeText(this, "NFC±êÇ©²»Ö§³ÖNDEF¸ñÊ½£¡", Toast.LENGTH_LONG)
+							.show();
+					return false;
+
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+			return false;
+		}
+
+	}
+}
+
+7.3
+public class ShowNFCTagContentActivity extends Activity
+{
+	private TextView mTagContent;
+	private Tag mDetectedTag;
+	private String mTagText;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_show_nfctag_content);
+		mTagContent = (TextView) findViewById(R.id.textview_tag_content);
+		mDetectedTag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
+		Ndef ndef = Ndef.get(mDetectedTag);
+		mTagText = ndef.getType() + "\n×î´óÊý¾ÝÈÝÁ¿£º" + ndef.getMaxSize()
+				+ " bytes\n\n";
+		readNFCTag();
+		mTagContent.setText(mTagText);
+	}
+
+	private void readNFCTag()
+	{
+
+		if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()))
+		{
+
+			Parcelable[] rawMsgs = getIntent().getParcelableArrayExtra(
+					NfcAdapter.EXTRA_NDEF_MESSAGES);
+
+			NdefMessage ndefMessage = null;
+			int contentSize = 0;
+			if (rawMsgs != null)
+			{
+
+				if (rawMsgs.length > 0)
+				{
+					ndefMessage = (NdefMessage) rawMsgs[0];
+					contentSize = ndefMessage.toByteArray().length;
+				}
+				else
+				{
+					return;
+				}
+			}
+			try
+			{
+
+				NdefRecord record = ndefMessage.getRecords()[0];
+
+				UriRecord uriRecord = UriRecord
+						.parse(ndefMessage.getRecords()[0]);
+
+				mTagText += uriRecord.getUri().toString() + "\n\nUri\n"
+						+ contentSize + " bytes";
+
+			}
+			catch (Exception e)
+			{
+				mTagContent.setText(e.getMessage());
+			}
+		}
+
+	}
+}
+
+7.4配置
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.read.write.uri"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="15" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".ReadWriteUriMainActivity"
+            android:label="读写NFC标签的Uri"
+            android:launchMode="singleTask" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:scheme="ftp" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ShowNFCTagContentActivity"
+            android:label="显示NFC标签内容" />
+        <activity
+            android:name=".UriListActivity"
+            android:label="选择Uri" />
+    </application>
+
+</manifest>
+
+8.利用NFc标签支持ｉｄ数据格式进行过滤
+8.1 过滤配置xml:xml/filter_nfc.xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <tech-list>
+        <tech>android.nfc.tech.NdefFormatable</tech>
+        <tech>android.nfc.tech.MifareUltralight</tech>
+    </tech-list>
+    <tech-list>
+        <tech>android.nfc.tech.Ndef</tech>
+    </tech-list>
+    <tech-list>
+        <tech>android.nfc.tech.NfcV</tech>
+    </tech-list>
+</resources>
+
+备注：三个<tech-list>之间是或者关系
+8.2 配置
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.tech.tag"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="15" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".TechTagMainActivity"
+            android:label="TECH_DISCOVERED"
+            android:launchMode="singleTask" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.TECH_DISCOVERED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
+                android:resource="@xml/filter_nfc" />
+        </activity>
+    </application>
+
+</manifest>
+
+8.3
+
+public class TechTagMainActivity extends Activity
+{
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+
+        setContentView(R.layout.activity_tech_tag_main);
+        Log.d("aaaaaa", "eddd");
+	}
+
+
+	@Override
+	public void onNewIntent(Intent intent)
+	{
+
+		Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+		String[] techList = tag.getTechList();//获取NFC标签支持的所有数据格式
+		String techStr = "";
+		for(String tech: techList)
+		{
+			techStr += tech + "\n";
+		}
+
+		Toast.makeText(this, "已检测到NFC标签\n\n" + techStr, Toast.LENGTH_LONG).show();
+
+	}
+
+}
+
+9.处理任意NFC标签
+  <activity
+            android:name=".TechTagMainActivity"
+            android:label="TECH_DISCOVERED"
+            android:launchMode="singleTask" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+  </activity>
+
+ 10.读写非NFC格式的数据
+ public class MifareultralightMainActivity extends Activity
+ {
+
+ 	private CheckBox mWriteData;
+ 	private NfcAdapter mNfcAdapter;
+ 	private PendingIntent mPendingIntent;
+
+ 	@Override
+ 	public void onCreate(Bundle savedInstanceState)
+ 	{
+ 		super.onCreate(savedInstanceState);
+
+ 		setContentView(R.layout.activity_mifareultralight);
+ 		mWriteData = (CheckBox) findViewById(R.id.checkbox_write);
+ 		mNfcAdapter = mNfcAdapter.getDefaultAdapter(this);
+ 		mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
+ 				getClass()), 0);
+
+ 	}
+
+ 	@Override
+ 	public void onResume()
+ 	{
+ 		super.onResume();
+ 		if (mNfcAdapter != null)
+ 			mNfcAdapter.enableForegroundDispatch(this, mPendingIntent, null,
+ 					null);
+ 	}
+
+ 	@Override
+ 	public void onNewIntent(Intent intent)
+ 	{
+
+ 		Tag tag = intent.getParcelableExtra(mNfcAdapter.EXTRA_TAG);
+ 		String[] techList = tag.getTechList();
+ 		boolean haveMifareUltralight = false;
+ 		for (String tech : techList)
+ 		{
+ 			//判断NFC标签是否支持MifareUltralight
+ 			if (tech.indexOf("MifareUltralight") >= 0)
+ 			{
+ 				haveMifareUltralight = true;
+ 				break;
+ 			}
+ 		}
+ 		if (!haveMifareUltralight)
+ 		{
+ 			Toast.makeText(this, "不支持MifareUltralight", Toast.LENGTH_LONG)
+ 					.show();
+ 			return;
+ 		}
+ 		if (mWriteData.isChecked())
+ 		{
+ 			writeTag(tag);
+ 		}
+ 		else
+ 		{
+ 			String data = readTag(tag);
+ 			if (data != null)
+ 				Toast.makeText(this, data, Toast.LENGTH_LONG).show();
+ 		}
+
+ 	}
+
+ 	@Override
+ 	public void onPause()
+ 	{
+ 		super.onPause();
+ 		if (mNfcAdapter != null)
+ 			mNfcAdapter.disableForegroundDispatch(this);
+
+ 	}
+
+ 	public void writeTag(Tag tag)
+ 	{
+
+ 		MifareUltralight ultralight = MifareUltralight.get(tag);
+ 		try
+ 		{
+ 			ultralight.connect();
+
+ 			ultralight.writePage(4, "中国".getBytes(Charset.forName("GB2312")));
+ 			ultralight.writePage(5, "美国".getBytes(Charset.forName("GB2312")));
+ 			ultralight.writePage(6, "英国".getBytes(Charset.forName("GB2312")));
+ 			ultralight.writePage(7, "法国".getBytes(Charset.forName("GB2312")));
+ 			Toast.makeText(this, "成功写入MifareUltralight格式数据", Toast.LENGTH_LONG)
+ 					.show();
+ 		}
+ 		catch (IOException e)
+ 		{
+ 			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+ 		}
+ 		finally
+ 		{
+ 			try
+ 			{
+ 				ultralight.close();
+ 			}
+ 			catch (IOException e)
+ 			{
+ 				Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+ 			}
+ 		}
+ 	}
+
+ 	public String readTag(Tag tag)
+ 	{
+ 		MifareUltralight ultralight = MifareUltralight.get(tag);
+
+ 		try
+ 		{
+ 			ultralight.connect();
+
+ 			byte[] payload = ultralight.readPages(4);
+ 			return new String(payload, Charset.forName("GB2312"));
+ 		}
+ 		catch (IOException e)
+ 		{
+ 			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+ 		}
+ 		finally
+ 		{
+ 			if (ultralight != null)
+ 			{
+ 				try
+ 				{
+ 					ultralight.close();
+ 				}
+ 				catch (IOException e)
+ 				{
+ 					Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG)
+ 							.show();
+ 				}
+ 			}
+ 		}
+ 		return null;
+ 	}
+ }
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.mifareultralight"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="15" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".MifareultralightMainActivity"
+            android:label="Mifareultralight"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+
+
+
+１１.Android Beam
+11.1 传递NDEF消息
+11.1.1
+public class AndroidBeamMainActivity extends Activity implements
+		CreateNdefMessageCallback,OnNdefPushCompleteCallback
+{
+
+	private EditText mBeamText;
+
+	private NfcAdapter mNfcAdapter;
+	private PendingIntent mPendingIntent;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+
+		setContentView(R.layout.activity_android_beam);
+		mBeamText = (EditText) findViewById(R.id.edittext_beam_text);
+		mNfcAdapter = mNfcAdapter.getDefaultAdapter(this);
+		mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
+				getClass()), 0);
+		mNfcAdapter.setNdefPushMessageCallback(this, this);//指定了推送消息的回调对象
+		mNfcAdapter.setOnNdefPushCompleteCallback(this, this);//指定了推送完成后的回调对象
+
+	}
+
+    //当推送消息方（按住正在缩小的屏幕的一方）完成消息推送后调用该方法
+	@Override
+	public void onNdefPushComplete(NfcEvent event)
+	{
+		//  Toast.makeText(this, "onNdefPushComplete", Toast.LENGTH_LONG).show();
+		Log.d("message", "complete");
+
+	}
+
+	@Override
+	public NdefMessage createNdefMessage(NfcEvent event)
+	{
+		String text = mBeamText.getText().toString().trim();
+		if ("".equals(text))
+		{
+			text = "默文本";
+		}
+
+		NdefMessage msg = new NdefMessage(new NdefRecord[]
+		{ createTextRecord(text) });
+		return msg;
+	}
+
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+		if (mNfcAdapter != null)
+			mNfcAdapter.enableForegroundDispatch(this, mPendingIntent, null,
+					null);
+
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+		if (mNfcAdapter != null)
+			mNfcAdapter.disableForegroundDispatch(this);
+
+	}
+
+	@Override
+	public void onNewIntent(Intent intent)
+	{
+
+		processIntent(intent);
+	}
+
+	public NdefRecord createTextRecord(String text)
+	{
+		byte[] langBytes = Locale.CHINA.getLanguage().getBytes(
+				Charset.forName("US-ASCII"));
+		Charset utfEncoding = Charset.forName("UTF-8");
+		byte[] textBytes = text.getBytes(utfEncoding);
+		int utfBit = 0;
+		char status = (char) (utfBit + langBytes.length);
+		byte[] data = new byte[1 + langBytes.length + textBytes.length];
+		data[0] = (byte) status;
+		System.arraycopy(langBytes, 0, data, 1, langBytes.length);
+		System.arraycopy(textBytes, 0, data, 1 + langBytes.length,
+				textBytes.length);
+		NdefRecord record = new NdefRecord(NdefRecord.TNF_WELL_KNOWN,
+				NdefRecord.RTD_TEXT, new byte[0], data);
+
+		return record;
+	}
+
+	void processIntent(Intent intent)
+	{
+
+		Parcelable[] rawMsgs = intent
+				.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+
+		NdefMessage msg = (NdefMessage) rawMsgs[0];
+		String text = TextRecord.parse(msg.getRecords()[0]).getText();
+		Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+	}
+}
+
+public class TextRecord
+{
+	private final String mText;
+
+	private TextRecord(String text)
+	{
+
+		mText = text;
+	}
+
+	public String getText()
+	{
+		return mText;
+	}
+
+
+	//  ½«´¿ÎÄ±¾ÄÚÈÝ´ÓNdefRecord¶ÔÏóÖÐ½âÎö³öÀ´
+	public static TextRecord parse(NdefRecord record)
+	{
+
+		if(record.getTnf() != NdefRecord.TNF_WELL_KNOWN)
+			return null;
+		if(!Arrays.equals(record.getType(), NdefRecord.RTD_TEXT))
+			return null;
+
+		try
+		{
+			byte[] payload = record.getPayload();
+			/*
+			 * payload[0] contains the "Status Byte Encodings" field, per the
+			 * NFC Forum "Text Record Type Definition" section 3.2.1.
+			 *
+			 * bit7 is the Text Encoding Field.
+			 *
+			 * if (Bit_7 == 0): The text is encoded in UTF-8 if (Bit_7 == 1):
+			 * The text is encoded in UTF16
+			 *
+			 * Bit_6 is reserved for future use and must be set to zero.
+			 *
+			 * Bits 5 to 0 are the length of the IANA language code.
+			 */
+			String textEncoding = ((payload[0] & 0x80) == 0) ? "UTF-8"
+					: "UTF-16";
+			int languageCodeLength = payload[0] & 0x3f;
+			String languageCode = new String(payload, 1, languageCodeLength,
+					"US-ASCII");
+			String text = new String(payload, languageCodeLength + 1,
+					payload.length - languageCodeLength - 1, textEncoding);
+			return new TextRecord(text);
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			// should never happen unless we get a malformed tag.
+			throw new IllegalArgumentException(e);
+		}
+	}
+
+
+}
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.android.beam"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="15" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".AndroidBeamMainActivity"
+            android:label="Android Beam"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+
+11.2传输文件
+public class NFCFileActivity extends Activity implements CreateBeamUrisCallback
+{
+	private NfcAdapter mNfcAdapter;
+	private PendingIntent mPendingIntent;
+    private final String targetFilename = "/sdcard/temp_icon.png";
+	@Override
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_nfcfile);
+		mNfcAdapter = mNfcAdapter.getDefaultAdapter(this);
+		mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
+				getClass()), 0);
+
+		mNfcAdapter.setBeamPushUrisCallback(this, this);
+
+		try
+		{
+			InputStream is = getResources().getAssets().open("icon.png");
+			FileOutputStream fos = new FileOutputStream(targetFilename);
+			byte[] buffer = new byte[10000];
+			int n = is.read(buffer);
+			fos.write(buffer, 0, n);
+			fos.close();
+			is.close();
+		}
+		catch (Exception e)
+		{
+
+		}
+
+	}
+
+	@Override
+	public Uri[] createBeamUris(NfcEvent event)
+	{
+		Uri[] uris = new Uri[1];
+		Uri uri = Uri.parse("file://" + targetFilename);
+
+		uris[0] = uri;
+
+		return uris;
+	}
+}
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mobile.android.nfcfile"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="16"
+        android:targetSdkVersion="17" />
+
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".NFCFileActivity"
+            android:label="@string/app_name"  android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
