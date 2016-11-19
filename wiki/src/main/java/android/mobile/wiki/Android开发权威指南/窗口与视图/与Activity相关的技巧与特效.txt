@@ -399,6 +399,11 @@ public class CloseAllActivity extends Activity
 	}
 }
 
+
+假如test.apk中有4个窗口，A, B, C, D, A是主窗口，在栈底，上面依次是B，C,D,先要求在D上一按钮，直接回到A，实现方案可：将A设置为singleTask模式
+然后：Intent intent = new Intent(this, A.class);
+startActivity(intent);
+
 7.窗口截屏
 实现步骤：
         （1）获取存储屏幕图像的Bitmap对象

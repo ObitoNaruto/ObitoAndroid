@@ -1,0 +1,49 @@
+1.FrameLayout
+
+android:layout_gravity:当前视图在父视图中的位置
+android:layout_marginTop：当前视图上边缘到某条基线的距离。例如当前的view是居中的，则其基线就是屏幕的中位线
+
+2.LinearLayout
+
+
+3.RelativeLayout
+
+android:layout_alignBaseLine:设置视图的底端对齐
+
+
+4.TableLayout
+
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent" android:layout_height="fill_parent" >
+    <TableRow android:paddingTop="20dp" >
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background1_small" />
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background2_small" android:paddingLeft="20dp"/>
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background3_small" android:paddingLeft="20dp"/>
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background4_small" android:paddingLeft="20dp"/>
+    </TableRow>
+    <TableRow android:paddingTop="20dp">
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background5_small" />
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background6_small" android:paddingLeft="20dp"/>
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background7_small" android:paddingLeft="20dp"/>
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:src="@drawable/christmas_background8_small" android:paddingLeft="20dp"/>
+    </TableRow>
+</TableLayout>
+
+5.AbsoluteLayout
+备注：不建议使用
+
+
+
+
+
+
+
+

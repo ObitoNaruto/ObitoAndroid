@@ -1,0 +1,42 @@
+
+1.Android中4种创建模式：android:launchMode="xxx"
+1.1 standard:launchMode默认值，窗口类可以被实例化多次，每一个实例可以属于不同的任务，一个任务也可以有同一个窗口的多个实例
+
+1.2 singleTop:如果窗口的实例正好在当前回退栈的栈顶，系统不会再次创建窗口对象，而是直接使用栈顶的窗口对象，并调用该对象的onNewIntent方法，
+如果要显示的窗口不在当前回退栈的栈顶，那么singleTop和standard的作用是一样的。
+
+1.3 singleTask：保证同一个窗口类在多个回退栈中只有一个实例，创建模式有4中情况：
+1.3.1 调用同一个应用程序中singleTask模式的窗口，并且该窗口不存在，系统会创建该窗口的对象，并将该窗口对象压入当前的回退栈（不会创建新的任务）
+1.3.2 调用同一个应用程序中singleTask模式的窗口，该窗口已经存在于当前回退栈中，如果该窗口对象位于栈顶，系统会调用该窗口对象的onNewIntent方法，
+如果该窗口并未在栈顶的位置，系统也会调用onNewIntent方法，不过还会将压在该窗口上面的所有窗口对象全部出栈
+1.3.3 调用另一个应用程序中的singleTask模式的窗口，该窗口不存在，系统会单独建立一个任务，并在创建该窗口的对象压入新建立任务的回退栈中，作为该回退栈的第一个元素，
+然后系统会将该任务切换到前台运行，
+1.3.4 调用另一个应用程序中的singleTask模式的窗口，该窗口已经被创建，系统会直接切换到该窗口所在的任务，当然，该窗口上面如果还压着其他窗口，同1.3.2一样
+
+1.4 singleInstance：该属性与singleTask作用基本相同，除了新建立的任务中的回退栈只能有一个窗口对象，所以该回退栈中不允许有其他的窗口对象存在
+
+2.用Java代码设置窗口创建模式
+2.1 intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP); //与singleTop一致
+2.2 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);//相当于singleTask
+2.3 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);//相当于singleTask
+2.4 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);//系统会释放压在A上的窗口对象及A对象，并重新创建A对象
+2.5 intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);//只要当前回退栈中任何位置有要显示的窗口对象，就不再为该窗口创建新对象，将其移到栈顶
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

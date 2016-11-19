@@ -1,0 +1,53 @@
+1.窗口的乾坤大挪移
+taskAffinity:默认值是当前应用程序的package名称，该属性指定了当前窗口对象要使用哪个回退栈
+allowTaskReparenting:默认值false，
+
+2.销毁不再使用是窗口
+1.alwaysRetainTaskState属性：默认值false，设置为true，用户系统无论离开多长时间都不会销毁回退栈中任何窗口
+2.clearTaskOnLaunch:与alwaysRetainTaskState相反，只要当前任务切换到后台，系统都会销毁除了根窗口以外的所有窗口
+3.finishOnTaskLaunch:与clearTaskOnLaunch类似，不同的是只针对当前窗口
+
+
+3.Activity的别名：
+        //第一个主窗口
+        <activity
+            android:name=".ActivityAliasMain"
+            android:label="@string/title_activity_activity_alias_main" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        //第一个主窗口的别名
+        <activity-alias
+            android:name=".AliasMain"
+            android:icon="@drawable/umbrella"
+            android:label="AliasMain"
+            android:targetActivity="ActivityAliasMain" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        //第二个主窗口
+        <activity
+            android:name=".MyActivity"
+            android:icon="@drawable/calculator"
+            android:label="Calculator" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+
+
+
+
+
+
+
+

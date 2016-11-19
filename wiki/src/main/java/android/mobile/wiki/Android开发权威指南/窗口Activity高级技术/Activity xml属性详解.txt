@@ -1,0 +1,126 @@
+
+1.屏幕方向切换：android:screenOrientation="xxx"
+    public void onClick_FourScreenOrientation(View view)
+	{
+		//设置窗口4个屏幕旋转方向，相对于android:screenOrientation="fullSensor"
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
+
+	}
+
+	public void onClick_LandscapeOrientation(View view)
+	{
+		//设置窗口只能横屏，相对于android:screenOrientation="landscape"
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+	}
+
+	public void onClick_PortraitOrientation(View view)
+	{
+		//设置窗口只能竖屏，相对于android:screenOrientation="portrait"
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+	}
+
+2.阻止Activity销毁和重建(android:configChanges)
+    //这个设置很关键
+    <uses-sdk
+            android:minSdkVersion="16"
+            android:targetSdkVersion="16" />
+
+    android:configChanges="orientation|screenSize"
+    //当配置变化时调用该方法
+    @Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE)
+			Log.d("orientation", "landscape");
+		else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT)
+			Log.d("orientation", "portrait");
+
+		Log.d("screen_width_dp", String.valueOf(newConfig.screenWidthDp));
+		Log.d("screen_height_dp", String.valueOf(newConfig.screenHeightDp));
+
+		Log.d("name", name);
+	}
+
+3.允许Activity被实例化（android:enabled）
+备注：android:enabled 默认值为true，则可实例化
+
+4.在最近应用列表中显示（android:excludeFromRecents）
+android:excludeFromRecents 默认值false， 设置为true时在按home键时列表中不会显示此应用
+
+5.允许其他程序访问当前窗口（android:exported）
+android:exported 默认值true
+
+6.硬件加速（android:hardwareAccelerated）
+android:hardwareAccelerated 默认值未false
+
+7.在多线程中创建窗口实例（android:multiprocess）
+android:multiprocess 默认值false ，设置未true时，允许窗可以运行在多个进程中
+
+8.无法返回的Acitivity（android:noHistory），最小API Level=3
+android:noHistory ,默认值false，设置未true系统不会保留窗口显示的历史
+
+9.指定要返回的窗口（android:parentActivityName），最小API Level=16
+android:parentActivityName属性主要用于ActionBar，当按下ActionBar的回退按钮后系统会回退到android:parentActivityName指定的窗口
+
+
+10.使窗口受到权限的保护（android:permission）
+A.apk:
+<activity
+    android:name=".MyActivity"
+    android:permission="android.permission.ACCESS_WIFI_STATE"
+     >
+    <intent-filter>
+        <action android:name="android.intent.action.NYACTION" />
+         <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+
+B.apk:
+<manifest ..>
+       //指定窗口权限
+       <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+       <application>
+        ...
+       </application>
+</manifest>
+
+11.改变窗口所在的进程（android:process）
+        <activity
+            android:name=".ActivityA"
+            android:label="@string/title_activity_activity" android:process=":new_process" />
+
+        <activity
+
+12.不保存窗口的状态（android:stateNotNeeded)
+android:stateNotNeeded ，默认值false
+
+13.窗口的主题（android:theme）
+
+14.扩展窗口UI（android:uiOptions），最小API Level=14
+android:uiOptions，默认值none，设置为splitActionBarWhenNarrow,屏幕状态不同，自动调整actionbar，导航条，菜单项等
+
+15.设置输入法显示模式（android:windowSoftInputMode），最小API Level=3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

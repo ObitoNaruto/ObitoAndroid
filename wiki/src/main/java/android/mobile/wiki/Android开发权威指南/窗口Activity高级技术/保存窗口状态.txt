@@ -1,0 +1,51 @@
+public class SaveActivityState extends Activity
+{
+	private String value = "default";
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		//如果savedInstanceState==null,表示第一次创建
+		//
+		if (savedInstanceState != null)
+		{
+			value = savedInstanceState.getString("value");
+		}
+	}
+
+	public void onClick_SetFieldValue(View view)
+
+	{
+		value = "newValue";
+	}
+	public void onClick_OutputFieldValue(View view)
+	{
+		Log.d("value", String.valueOf(value));
+	}
+	//该方法用于保存状态变量，当前对象被系统销毁之前会调用该方法
+	@Override
+	protected void onSaveInstanceState(Bundle outState)
+	{
+
+		super.onSaveInstanceState(outState);
+		outState.putString("value", value);
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
