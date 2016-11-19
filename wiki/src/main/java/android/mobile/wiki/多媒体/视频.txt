@@ -1,0 +1,130 @@
+
+１．播放视频
+public class Main extends Activity implements OnClickListener
+{
+	private VideoView videoView;
+
+	@Override
+	public void onClick(View view)
+	{
+		switch (view.getId())
+		{
+			case R.id.btnPlay:
+				videoView.setVideoURI(Uri.parse("file:///sdcard/video.3gp"));
+				videoView.setMediaController(new MediaController(this));//指定播放控制器，允许暂停、快进和快退视频
+				videoView.start();
+
+
+				break;
+
+			case R.id.btnStop:
+				videoView.stopPlayback();
+				break;
+		}
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		Button btnPlay = (Button) findViewById(R.id.btnPlay);
+		Button btnStop = (Button) findViewById(R.id.btnStop);
+		videoView = (VideoView) findViewById(R.id.videoView);
+		btnPlay.setOnClickListener(this);
+		btnStop.setOnClickListener(this);
+	}
+}
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<VideoView android:id="@+id/videoView" android:layout_width="320px"
+		android:layout_height="240px" />
+	<LinearLayout android:orientation="horizontal"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:gravity="center_horizontal" android:layout_marginTop="20dp">
+		<Button android:id="@+id/btnPlay" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="播放" />
+		<Button android:id="@+id/btnStop" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:text="停止" />
+	</LinearLayout>
+</LinearLayout>
+
+２.录制视频
+public class Main extends Activity implements OnClickListener
+{
+	public VideoView videoView;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		videoView = (VideoView) findViewById(R.id.videoview);
+		Button btnTakePicture = (Button) findViewById(R.id.btnTakePicture);
+		btnTakePicture.setOnClickListener(this);
+
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if (requestCode == 1)
+		{
+			if (resultCode == Activity.RESULT_OK)
+			{
+				Uri uri = data.getData();//获取查询视频文件路径的Uri
+				Cursor cursor = this.getContentResolver().query(uri, null,
+						null, null, null);
+				if (cursor.moveToFirst())
+				{
+
+					String videoPath = cursor.getString(cursor
+							.getColumnIndex("_data"));
+					videoView.setVideoURI(Uri.parse(videoPath));
+					// 控制器
+					videoView.setMediaController(new MediaController(this));
+					// 播放
+					videoView.start();
+
+				}
+
+			}
+
+		}
+		super.onActivityResult(requestCode, resultCode, data);
+	}
+
+	@Override
+	public void onClick(View view)
+	{
+		Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+		startActivityForResult(intent, 1);//开始录像
+
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

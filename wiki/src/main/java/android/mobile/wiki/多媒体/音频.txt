@@ -1,0 +1,177 @@
+
+1.音频播放
+public class Main extends Activity implements OnClickListener,
+		OnCompletionListener
+{
+	private MediaPlayer mediaPlayer;
+	private Button btnPause;
+    //播放完成后调用onCompletion
+	@Override
+	public void onCompletion(MediaPlayer mp)
+	{
+		mp.release();//音频播放完后，通常需要释放音频资源
+		setTitle("资源已经释放");
+
+	}
+
+	@Override
+	public void onClick(View view)
+	{
+		try
+		{
+			switch (view.getId())
+			{
+				case R.id.btnStart1://播放res/raw中的资源
+					mediaPlayer = MediaPlayer.create(this, R.raw.music);
+					mediaPlayer.setOnCompletionListener(this);
+					if (mediaPlayer != null)
+						mediaPlayer.stop();
+					mediaPlayer.prepare();
+					mediaPlayer.start();
+					break;
+
+				case R.id.btnStart2://播放Sd卡中的资源
+					mediaPlayer = new MediaPlayer();
+					mediaPlayer.setDataSource("/sdcard/music.mp3");
+
+					mediaPlayer.prepare();
+					mediaPlayer.start();
+					break;
+				case R.id.btnStop:
+					if (mediaPlayer != null)
+					{
+						mediaPlayer.stop();
+					}
+					break;
+				case R.id.btnPause:
+					if (mediaPlayer != null)
+					{
+						if ("播放".equals(btnPause.getText().toString()))
+						{
+							mediaPlayer.start();
+							btnPause.setText("暂停");
+						}
+						else if ("暂停".equals(btnPause.getText().toString()))
+						{
+							mediaPlayer.pause();
+							btnPause.setText("播放");
+						}
+					}
+			}
+		}
+		catch (Exception e)
+		{
+
+		}
+
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		Button btnStart1 = (Button) findViewById(R.id.btnStart1);
+		Button btnStart2 = (Button) findViewById(R.id.btnStart2);
+		Button btnStop = (Button) findViewById(R.id.btnStop);
+		btnPause = (Button) findViewById(R.id.btnPause);
+		btnStart1.setOnClickListener(this);
+		btnStart2.setOnClickListener(this);
+		btnStop.setOnClickListener(this);
+		btnPause.setOnClickListener(this);
+
+	}
+}
+
+2.录制音频
+public class Main extends Activity implements OnClickListener
+{
+	private File recordAudioFile;
+	private MediaRecorder mediaRecorder;
+	private MediaPlayer mediaPlayer;
+
+	@Override
+	public void onClick(View view)
+	{
+		try
+		{
+			switch (view.getId())
+			{
+				case R.id.btnRecord://开始录音
+					recordAudioFile = File.createTempFile("record",
+							".amr");指定录音文件的临时文件名
+					mediaRecorder = new MediaRecorder();
+					mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);指定音频来源（麦克风）
+					mediaRecorder
+							.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);指定音频输出格式
+					mediaRecorder
+							.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);指定音频编码格式
+					mediaRecorder.setOutputFile(recordAudioFile
+							.getAbsolutePath());指定录制文件的路径
+					mediaRecorder.prepare();
+					mediaRecorder.start();开始录音
+					Toast.makeText(this, "开始录音", Toast.LENGTH_LONG).show();
+					break;
+				case R.id.btnStop:停止录音
+					if (mediaRecorder != null)
+					{
+						mediaRecorder.stop();
+						mediaRecorder.release();
+						mediaRecorder = null;
+						Toast.makeText(this, "停止录音", Toast.LENGTH_LONG).show();
+					}
+					break;
+				case R.id.btnPlay:播放录音
+					mediaPlayer = new MediaPlayer();
+					mediaPlayer.setDataSource(recordAudioFile.getAbsolutePath());
+					mediaPlayer.prepare();
+					mediaPlayer.start();
+					break;
+				case R.id.btnDelete:
+					recordAudioFile.delete();
+					break;
+
+			}
+		}
+		catch (Exception e)
+		{
+			Log.d("error", e.getMessage());
+		}
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+
+		Button btnRecord = (Button) findViewById(R.id.btnRecord);
+		Button btnStop = (Button) findViewById(R.id.btnStop);
+		Button btnPlay = (Button)findViewById(R.id.btnPlay);
+		Button btnDelete = (Button)findViewById(R.id.btnDelete);
+		btnRecord.setOnClickListener(this);
+		btnStop.setOnClickListener(this);
+		btnPlay.setOnClickListener(this);
+		btnDelete.setOnClickListener(this);
+
+	}
+}
+
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
