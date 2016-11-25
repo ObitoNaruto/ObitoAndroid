@@ -32,52 +32,48 @@
 
 package android.mobile.commonutils;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.view.View;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
-    /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
-     */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+public class DialogUtils {
+    public static AlertDialog.Builder dialogBuilder(Context context, String title, String msg) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        if (msg != null) {
+            builder.setMessage(msg);
         }
+        if (title != null) {
+            builder.setTitle(title);
+        }
+        return builder;
     }
 
-    /**
-     * 从Assert文件夹中取文件数据
-     */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
-        try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
-            return true;
-        } catch (IOException e) {
-            return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
+    public static AlertDialog.Builder dialogBuilder(Context context, int title, View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        if (view != null) {
+            builder.setView(view);
         }
+        if (title > 0) {
+            builder.setTitle(title);
+        }
+        return builder;
+    }
+
+    public static AlertDialog.Builder dialogBuilder(Context context, int titleResId, int msgResId) {
+        String title = titleResId > 0 ? context.getResources().getString(titleResId) : null;
+        String msg = msgResId > 0 ? context.getResources().getString(msgResId) : null;
+        return dialogBuilder(context, title, msg);
+    }
+
+    public static Dialog showTips(Context context, String title, String des, String btn, DialogInterface.OnDismissListener dismissListener) {
+        AlertDialog.Builder builder = dialogBuilder(context, title, des);
+        builder.setCancelable(true);
+        builder.setPositiveButton(btn, null);
+        Dialog dialog = builder.show();
+        dialog.setCanceledOnTouchOutside(true);
+        dialog.setOnDismissListener(dismissListener);
+        return dialog;
     }
 }

@@ -32,52 +32,54 @@
 
 package android.mobile.commonutils;
 
-import android.content.Context;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
+public class UrlUtils {
     /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
+     * 获取URL中参数 并返回Map
+     * @param url
+     * @return
      */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+    public static Map<String, String> getUrlParams(String url) {
+        Map<String, String> params = null;
+        try {
+            String[] urlParts = url.split("\\?");
+            if (urlParts.length > 1) {
+                params = new HashMap<>();
+                String query = urlParts[1];
+                for (String param : query.split("&")) {
+                    String[] pair = param.split("=");
+                    String key = URLDecoder.decode(pair[0], "UTF-8");
+                    String value = "";
+                    if (pair.length > 1) {
+                        value = URLDecoder.decode(pair[1], "UTF-8");
+                    }
+                    params.put(key, value);
+                }
             }
+        } catch (UnsupportedEncodingException ex) {
+            ex.printStackTrace();
         }
+        return params;
     }
 
     /**
-     * 从Assert文件夹中取文件数据
+     * 是否是网络链接
+     * @param url
+     * @return
      */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
+    public static boolean isUrl(String url) {
         try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
+            URL url1 = new URL(url);
             return true;
-        } catch (IOException e) {
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
             return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
         }
     }
 }

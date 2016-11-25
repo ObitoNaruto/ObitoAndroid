@@ -32,52 +32,53 @@
 
 package android.mobile.commonutils;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.ContentObserver;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Handler;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
+public class ObserverHelper {
     /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
+     * need permission:<uses-permission android:name="android.permission.READ_SMS"/>
      */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+    public static void userContentResolver(Context context){
+        //1.第一步
+        ContentResolver resolver = context.getContentResolver();
+        Uri uri = Uri.parse("content://sms/");
+        resolver.registerContentObserver(uri, true, new MyObserver(new Handler()));
 
-    /**
-     * 从Assert文件夹中取文件数据
-     */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
-        try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
+        //2.第二步
+        class MyObserver extends ContentObserver
+        {
+
+            public MyObserver(Handler handler)
+            {
+                super(handler);
+
             }
-            return true;
-        } catch (IOException e) {
-            return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
+
+            //当内容观察者观察到了数据库的内容变化时调用这个方法
+            //观察到消息邮箱里有一条数据库内容发生变化的通知
+            @Override
+            public void onChange(boolean selfChange)
+            {
+                super.onChange(selfChange);
+//                Toast.makeText(MainActivity.this, "数据库的内容变化了", Toast.LENGTH_SHORT).show();
+
+                ContentResolver resolver = context.getContentResolver();
+                Uri uri = Uri.parse("content://sms/");
+                Cursor cursor = resolver.query(uri, new String[]{"address", "date", "type", "body"}, null, null, null);
+                cursor.moveToFirst();
+                String address = cursor.getString(0);
+                long date = cursor.getLong(1);
+                int type = cursor.getInt(2);
+                String body = cursor.getString(3);
+                System.out.println("address = " + address + " : " + "body = " + body);
+                cursor.close();
+
+            }
         }
     }
 }

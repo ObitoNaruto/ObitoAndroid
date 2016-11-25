@@ -32,52 +32,49 @@
 
 package android.mobile.commonutils;
 
-import android.content.Context;
+import java.util.Map;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
+public class MapUtils {
     /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
+     * 判断map是否为空
+     * @param sourceMap
+     * @param <K>
+     * @param <V>
+     * @return if map is null or its size is 0, return true, else return false.
      */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public static <K, V> boolean isEmpty(Map<K, V> sourceMap) {
+        return (sourceMap == null || sourceMap.size() == 0);
     }
 
     /**
-     * 从Assert文件夹中取文件数据
+     * 向map中插入key不为空的key-value
+     * @param map
+     * @param key
+     * @param value
+     * @return
      */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
-        try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
-            return true;
-        } catch (IOException e) {
+    public static boolean putMapNotEmptyKey(Map<String, String> map, String key, String value) {
+        if (map == null || StringUtils.isEmpty(key)) {
             return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
         }
+
+        map.put(key, value);
+        return true;
+    }
+
+    /**
+     * 向map中插入key和value俱不为空的key-value
+     * @param map
+     * @param key
+     * @param value
+     * @return
+     */
+    public static boolean putMapNotEmptyKeyAndValue(Map<String, String> map, String key, String value) {
+        if (map == null || StringUtils.isEmpty(key) || StringUtils.isEmpty(value)) {
+            return false;
+        }
+
+        map.put(key, value);
+        return true;
     }
 }

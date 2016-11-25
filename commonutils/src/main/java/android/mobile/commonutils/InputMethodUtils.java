@@ -32,52 +32,47 @@
 
 package android.mobile.commonutils;
 
+import android.app.Activity;
 import android.content.Context;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
-    /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
-     */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+public class InputMethodUtils {
+    public static void toggleSoftInput(Context context) {
+        InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
     }
 
-    /**
-     * 从Assert文件夹中取文件数据
-     */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
-        try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
-            return true;
-        } catch (IOException e) {
-            return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
+    public static boolean showSoftInput(View view) {
+        InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        return imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+    }
+
+    public static boolean showSoftInput(Activity activity) {
+        View view = activity.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(
+                    Context.INPUT_METHOD_SERVICE);
+            return imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
         }
+        return false;
+    }
+
+    public static boolean hideSoftInput(View view) {
+        InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        return imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
+    public static boolean hideSoftInput(Activity activity) {
+        if (activity.getCurrentFocus() != null) {
+            InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            return imm.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(), 0);
+        }
+        return false;
+    }
+
+    public static boolean isActive(Context context) {
+        InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        return imm.isActive();
     }
 }

@@ -32,52 +32,53 @@
 
 package android.mobile.commonutils;
 
+import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
+import android.os.Build;
+import android.view.Surface;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
+public class WindowUtils {
     /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
+     * 获取当前窗口的旋转角度
+     *
+     * @param activity
+     * @return
      */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    @TargetApi(Build.VERSION_CODES.FROYO)
+    public static int getDisplayRotation(Activity activity) {
+        switch (activity.getWindowManager().getDefaultDisplay().getRotation()) {
+            case Surface.ROTATION_0:
+                return 0;
+            case Surface.ROTATION_90:
+                return 90;
+            case Surface.ROTATION_180:
+                return 180;
+            case Surface.ROTATION_270:
+                return 270;
+            default:
+                return 0;
         }
     }
 
     /**
-     * 从Assert文件夹中取文件数据
+     * 当前是否是横屏
+     *
+     * @param context
+     * @return
      */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
-        try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
-            return true;
-        } catch (IOException e) {
-            return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
-        }
+    public static boolean isLandscape(Context context) {
+        return context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    /**
+     * 当前是否是竖屏
+     *
+     * @param context
+     * @return
+     */
+    public static boolean isPortrait(Context context) {
+        return context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
     }
 }

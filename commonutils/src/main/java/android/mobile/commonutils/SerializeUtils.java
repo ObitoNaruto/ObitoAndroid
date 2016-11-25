@@ -32,52 +32,66 @@
 
 package android.mobile.commonutils;
 
-import android.content.Context;
-
-import java.io.Closeable;
-import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
-public class IOUtils {
-
+public class SerializeUtils {
     /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
+     * 序列化
+     * @param filePath
+     * @param obj
      */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+    public static void serialization(String filePath, Object obj) {
+        ObjectOutputStream out = null;
+        try {
+            out = new ObjectOutputStream(new FileOutputStream(filePath));
+            out.writeObject(obj);
+            out.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("FileNotFoundException occurred. ", e);
+        } catch (IOException e) {
+            throw new RuntimeException("IOException occurred. ", e);
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    throw new RuntimeException("IOException occurred. ", e);
+                }
             }
         }
     }
 
     /**
-     * 从Assert文件夹中取文件数据
+     * 反序列化
+     * @param filePath
+     * @return
      */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
+    public static Object deserialization(String filePath) {
+        ObjectInputStream in = null;
         try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
-            return true;
+            in = new ObjectInputStream(new FileInputStream(filePath));
+            Object o = in.readObject();
+            in.close();
+            return o;
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("FileNotFoundException occurred. ", e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("ClassNotFoundException occurred. ", e);
         } catch (IOException e) {
-            return false;
+            throw new RuntimeException("IOException occurred. ", e);
         } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    throw new RuntimeException("IOException occurred. ", e);
+                }
+            }
         }
     }
 }

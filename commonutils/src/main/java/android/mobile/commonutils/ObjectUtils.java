@@ -32,52 +32,42 @@
 
 package android.mobile.commonutils;
 
-import android.content.Context;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class IOUtils {
-
+public class ObjectUtils {
     /**
-     * 关闭数据流的公用方法，适用于所有implements了Closeable接口
-     * @param closeable
+     * 比较两个对象是否相等
+     * @param actual 待比较对象
+     * @param expected 比较对象
+     * @return if both are null or , return true; else compare two object by using Object.equals(Object)
      */
-    public static void closeQuietly(Closeable closeable) {
-        if (null != closeable) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public static boolean isEquals(Object actual, Object expected){
+        return actual == expected || (null == actual ? null == expected : actual.equals(expected));
     }
 
     /**
-     * 从Assert文件夹中取文件数据
+     * 对象转换成字符串
+     * @param str
+     * @return if str is null, return ""
      */
-    public static boolean retrieveFileFromAssets(Context context, String fileName, String path) {
-        InputStream is = null;
-        FileOutputStream fos = null;
-        try {
-            is = context.getAssets().open(fileName);
-            File file = new File(path);
-            file.createNewFile();
-            fos = new FileOutputStream(file);
-            byte[] temp = new byte[1024];
-            int i = 0;
-            while ((i = is.read(temp)) > 0) {
-                fos.write(temp, 0, i);
-            }
-            return true;
-        } catch (IOException e) {
-            return false;
-        } finally {
-            closeQuietly(is);
-            closeQuietly(fos);
-        }
+    public static String objectToString(Object str) {
+        return (null == str ? "" : (str instanceof String ? (String)str : str.toString()));
+    }
+
+    /**
+     * 比较两个对象
+     * 规则：
+     * if v1 > v2, return 1
+     * if v1 = v2, return 0
+     * if v1 < v2, return -1
+     * @param v1
+     * @param v2
+     * @param <V>
+     * @return
+     * if v1 is null, v2 is null, then return 0
+     * if v1 is null, v2 is not null, then return -1
+     * if v1 is not null, v2 is null, then return 1
+     * return v1.{@link Comparable#compareTo(Object)}
+     */
+    public static <V> int compare(V v1, V v2) {
+        return v1 == null ? (v2 == null ? 0 : -1) : (v2 == null ? 1 : ((Comparable)v1).compareTo(v2));
     }
 }
