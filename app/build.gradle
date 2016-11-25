@@ -24,7 +24,6 @@ dependencies {
     compile project(':model')
     compile project(':core')
     compile project(':service')
-    compile project(':widget')
     compile project(':commonutils')
 
 

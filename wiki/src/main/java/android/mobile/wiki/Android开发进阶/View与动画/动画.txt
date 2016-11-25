@@ -1,0 +1,61 @@
+1.帧动画
+1.1 drawable文件中定义动画
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="true" >
+
+    <item
+        android:drawable="@drawable/ic_heart_0"
+        android:duration="500"/>
+    <item
+        android:drawable="@drawable/ic_heart_1"
+        android:duration="500"/>
+    <item
+        android:drawable="@drawable/ic_heart_2"
+        android:duration="500"/>
+    <item
+        android:drawable="@drawable/ic_heart_3"
+        android:duration="500"/>
+    <item
+        android:drawable="@drawable/ic_heart_4"
+        android:duration="500"/>
+
+</animation-list>
+
+1.2 布局中引用
+ <ImageView
+        android:id="@+id/imageview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/heart_anim" />
+
+1.3代码中使用
+第一种用法：
+ private void startFrameAnim() {
+        mImageView.postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                ((AnimationDrawable) mImageView.getBackground()).start();
+            }
+        }, 2000);
+    }
+
+第二种用法：
+AnimationDrawable anim = new AnimationDrawable();
+for(int i = 0; i <= 4; i++){
+
+    int id = getResources().getIdentifier("inc_heart_" + i, "drawable", getPackageName());
+    Drawable drawable = getResources().getDrawable(id);
+    anim.addFrame(drawable, 300);
+}
+
+anim.setOneShot(false);
+mImageView.setBackgroundDrawable(anim);
+anim.start();
+
+
+
+
+
+

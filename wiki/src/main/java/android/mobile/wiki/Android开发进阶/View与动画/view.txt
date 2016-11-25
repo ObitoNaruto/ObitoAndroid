@@ -1,0 +1,346 @@
+1.自定义view
+1.1代码
+/**
+ * 简单的ImageView,用于显示图片
+ */
+public class SimpleImageViewV2 extends View {
+    // 画笔
+    private Paint mBitmapPaint;
+    // 图片drawable
+    private Drawable mDrawable;
+    // 要绘制的图片
+    Bitmap mBitmap;
+    // view的宽度
+    private int mWidth;
+    // view的高度
+    private int mHeight;
+
+    public SimpleImageViewV2(Context context) {
+        this(context, null);
+    }
+
+    public SimpleImageViewV2(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initAttrs(attrs);
+        mBitmapPaint = new Paint();
+        mBitmapPaint.setAntiAlias(true);
+        mBitmapPaint.setColor(Color.RED);
+    }
+
+    private void initAttrs(AttributeSet attrs) {
+        if (attrs != null) {
+            TypedArray array = null;
+            try {
+                array = getContext().obtainStyledAttributes(attrs, R.styleable.CircleImageView);
+                mDrawable = array.getDrawable(R.styleable.CircleImageView_src);
+                measureDrawable();
+            } finally {
+                if (array != null) {
+                    array.recycle();
+                }
+            }
+
+        }
+    }
+
+    private void measureDrawable() {
+        if (mDrawable == null) {
+            throw new RuntimeException("drawable不能为空呐!");
+        }
+
+        mWidth = mDrawable.getIntrinsicWidth();
+        mHeight = mDrawable.getIntrinsicHeight();
+
+        Log.e(VIEW_LOG_TAG, "### width = " + mWidth + ", height = " + mHeight);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // 获取宽度的模式与大小
+        // int widthMode = MeasureSpec.getMode(widthMeasureSpec);
+        // int width = MeasureSpec.getSize(widthMeasureSpec);
+        // // 高度的模式与大小
+        // int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        // int heiht = MeasureSpec.getSize(heightMeasureSpec);
+        // // 设置View的宽高
+        // setMeasuredDimension(measureWidth(widthMode, width),
+        // measureHeight(heightMode, heiht));
+
+        // 设置View的宽高
+        setMeasuredDimension(resolveSize(mWidth, widthMeasureSpec),
+                resolveSize(mHeight, heightMeasureSpec));
+    }
+
+    private int measureWidth(int mode, int width) {
+        switch (mode) {
+            case MeasureSpec.UNSPECIFIED:
+                Log.e(VIEW_LOG_TAG, "### MeasureSpec.AT_MOST");
+                break;
+
+            case MeasureSpec.AT_MOST:
+                Log.e(VIEW_LOG_TAG, "### MeasureSpec.AT_MOST");
+                break;
+            case MeasureSpec.EXACTLY:
+                Log.e(VIEW_LOG_TAG, "### MeasureSpec.EXACTLY , width = " + width);
+                mWidth = width;
+                break;
+        }
+        return mWidth;
+    }
+
+    private int measureHeight(int mode, int height) {
+        switch (mode) {
+            case MeasureSpec.UNSPECIFIED:
+                break;
+
+            case MeasureSpec.AT_MOST:
+                break;
+            case MeasureSpec.EXACTLY:
+                Log.e(VIEW_LOG_TAG, "### MeasureSpec.EXACTLY , height = " + height);
+                mHeight = height;
+                break;
+        }
+        return mHeight;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        if (mBitmap == null) {
+            mBitmap = Bitmap.createScaledBitmap(ImageUtils.drawableToBitamp(mDrawable),
+                    getMeasuredWidth(), getMeasuredHeight(), true);
+        }
+        // 绘制图片
+        canvas.drawBitmap(mBitmap,
+                getLeft(), getTop(), mBitmapPaint);
+        canvas.save();
+        canvas.rotate(90);
+        mBitmapPaint.setColor(Color.YELLOW);
+        mBitmapPaint.setTextSize(30);
+        canvas.drawText("AngelaBaby", getLeft() + 50, getTop() - 50, mBitmapPaint);
+        canvas.restore();
+    }
+
+}
+
+1.2attr文件
+<resources>
+    <declare-styleable name="CircleImageView">
+        <attr name="src" format="integer" />
+    </declare-styleable>
+</resources>
+
+2.自定义ViewGroup
+public class VerticalLayout extends ViewGroup {
+
+    public VerticalLayout(Context context) {
+        this(context, null);
+    }
+
+    public VerticalLayout(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int childCount = getChildCount();
+        int width = getPaddingLeft() + getPaddingRight();
+        int height = getPaddingTop() + getPaddingBottom();
+
+        for (int i = 0; i < childCount; i++) {
+            View childView = getChildAt(i);
+            if (childView.getVisibility() != View.GONE) {
+                measureChild(childView, widthMeasureSpec, heightMeasureSpec);
+                width = Math.max(width, childView.getMeasuredWidth());
+                height += childView.getMeasuredHeight();
+            }
+        }
+
+        // 设置大小
+        setMeasuredDimension(resolveSize(width, widthMeasureSpec),
+                resolveSize(height, heightMeasureSpec));
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        int left = getLeft() + getPaddingLeft();
+        int top = getTop() + getPaddingTop();
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View childView = getChildAt(i);
+            if (childView.getVisibility() != View.GONE) {
+                Log.e(VIEW_LOG_TAG,
+                        "### 布局 left = " + left + ", top = " + top + ", width = "
+                                + childView.getMeasuredWidth() + ", height = "
+                                + childView.getMeasuredHeight());
+                childView.layout(left, top, left + childView.getMeasuredWidth(),
+                        top + childView.getMeasuredHeight());
+                top += childView.getMeasuredHeight();
+            }
+        }
+    }
+
+}
+
+３．Canvas与Paint
+public class CanvasView extends View {
+
+    // 创建画笔
+    Paint mPaint = new Paint();
+
+    public CanvasView(Context context) {
+        this(context, null);
+    }
+
+    public CanvasView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        mPaint.setColor(Color.RED);// 设置红色
+        mPaint.setTextSize(16);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+
+        canvas.drawText("画圆：", 10, 20, mPaint);     // 画文本
+        canvas.drawCircle(60, 20, 50, mPaint);      // 小圆
+        mPaint.setAntiAlias(true);                  // 设置画笔的反锯齿效果,绘制出来的图形更精细
+        canvas.drawCircle(200, 20, 50, mPaint);     // 大圆
+
+        canvas.drawText("画线及弧线：", 10, 60, mPaint);
+        mPaint.setColor(Color.GREEN);// 设置绿色
+        canvas.drawLine(60, 40, 100, 40, mPaint);// 画线
+        canvas.drawLine(110, 40, 190, 80, mPaint);// 斜线
+        // 画笑脸弧线
+        mPaint.setStyle(Paint.Style.STROKE);// 设置空心
+        RectF oval1 = new RectF(150, 20, 180, 40);
+        canvas.drawArc(oval1, 180, 180, false, mPaint);// 小弧形
+        oval1.set(190, 20, 220, 40);
+        canvas.drawArc(oval1, 180, 180, false, mPaint);// 小弧形
+        oval1.set(160, 30, 210, 60);
+        canvas.drawArc(oval1, 0, 180, false, mPaint);// 小弧形
+
+        canvas.drawText("画矩形：", 10, 80, mPaint);
+        mPaint.setColor(Color.GRAY);// 设置灰色
+        mPaint.setStyle(Paint.Style.FILL);// 设置填满
+        canvas.drawRect(60, 60, 80, 80, mPaint);// 正方形
+        canvas.drawRect(60, 90, 160, 100, mPaint);// 长方形
+
+        canvas.drawText("画扇形和椭圆:", 10, 120, mPaint);
+        /* 设置渐变色 这个正方形的颜色是改变的 */
+        Shader mShader = new LinearGradient(0, 0, 100, 100,
+                new int[] {
+                        Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW,
+                        Color.LTGRAY
+                }, null, Shader.TileMode.REPEAT); // 一个材质,打造出一个线性梯度沿著一条线。
+        mPaint.setShader(mShader);
+        RectF oval2 = new RectF(60, 100, 200, 240);// 设置个新的长方形，扫描测量
+        canvas.drawArc(oval2, 200, 130, true, mPaint);
+        // 画弧，第一个参数是RectF：该类是第二个参数是角度的开始，第三个参数是多少度，第四个参数是真的时候画扇形，是假的时候画弧线
+        // 画椭圆，把oval改一下
+        oval2.set(210, 100, 250, 130);
+        canvas.drawOval(oval2, mPaint);
+
+        canvas.drawText("画三角形：", 10, 200, mPaint);
+        // 绘制这个三角形,你可以绘制任意多边形
+        Path path = new Path();
+        path.moveTo(80, 200);// 此点为多边形的起点
+        path.lineTo(120, 250);
+        path.lineTo(80, 250);
+        path.close(); // 使这些点构成封闭的多边形
+        canvas.drawPath(path, mPaint);
+
+        // 你可以绘制很多任意多边形，比如下面画六连形
+        mPaint.reset();// 重置
+        mPaint.setColor(Color.LTGRAY);
+        mPaint.setStyle(Paint.Style.STROKE);// 设置空心
+        Path path1 = new Path();
+        path1.moveTo(180, 200);
+        path1.lineTo(200, 200);
+        path1.lineTo(210, 210);
+        path1.lineTo(200, 220);
+        path1.lineTo(180, 220);
+        path1.lineTo(170, 210);
+        path1.close();// 封闭
+        canvas.drawPath(path1, mPaint);
+        /*
+         * Path类封装复合(多轮廓几何图形的路径
+         * 由直线段*、二次曲线,和三次方曲线，也可画以油画。drawPath(路径、油漆),要么已填充的或抚摸
+         * (基于油漆的风格),或者可以用于剪断或画画的文本在路径。
+         */
+        // 画圆角矩形
+        mPaint.setStyle(Paint.Style.FILL);// 充满
+        mPaint.setColor(Color.LTGRAY);
+        mPaint.setAntiAlias(true);// 设置画笔的锯齿效果
+        canvas.drawText("画圆角矩形:", 10, 260, mPaint);
+        RectF oval3 = new RectF(80, 260, 200, 300);// 设置个新的长方形
+        canvas.drawRoundRect(oval3, 20, 15, mPaint);// 第二个参数是x半径，第三个参数是y半径
+
+        // 画贝塞尔曲线
+        canvas.drawText("画贝塞尔曲线:", 10, 310, mPaint);
+        mPaint.reset();
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setColor(Color.GREEN);
+        Path path2 = new Path();
+        path2.moveTo(100, 320);// 设置Path的起点
+        path2.quadTo(150, 310, 170, 400); // 设置贝塞尔曲线的控制点坐标和终点坐标
+        canvas.drawPath(path2, mPaint);// 画出贝塞尔曲线
+
+        // 画点
+        mPaint.setStyle(Paint.Style.FILL);
+        canvas.drawText("画点：", 10, 390, mPaint);
+        canvas.drawPoint(60, 390, mPaint);// 画一个点
+        canvas.drawPoints(new float[] {
+                60, 400, 65, 400, 70, 400
+        }, mPaint);// 画多个点
+
+        // 画图片，就是贴图
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
+        canvas.drawBitmap(bitmap, 250, 360, mPaint);
+    }
+
+}
+
+
+3,Scroller原理
+
+public class ScrollLayout extends FrameLayout{
+    Scroller mScroller;
+
+    public ScrollLayout(Context context){
+        super(context);
+        mScroller = new Scroller(context);
+    }
+    //该函数在Ｖｉｅｗ重绘之时被调用
+    @Override
+    public void computeScroll(){
+        if(mScroller.computeScrollOffset(){//返回true表明滚动未完成
+            //滚动到此，View应该滚动到的x,y坐标上
+            this.scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            //请求重绘该view,从而会导致computeScroll被调用，然后继续滚动，直到computeScrollOffset返回false
+            this.postInvalidate();
+        }
+    }
+    //调用这个方法进行滚动，这里我们只滚动竖直方向
+    public void scrollTo(int y){
+        //参数１和参数２分别为滚动的起始点水平、竖直方向的滚动偏移量
+        //参数３和阐述４为水平和竖直方向上滚动的距离
+        mScroller.startScroll(getScrollX(), getScrollY(), 0, y);
+        this.invalidate();
+    }
+}
+
+滚动该视图的代码:
+ScrollLayout scrollView = new ScrollLayout(getContent);
+scrollView.scrollTo(100);
+
+
+
+
+
+
+
+
+
+
+
+
+

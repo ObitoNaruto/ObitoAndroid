@@ -1,0 +1,149 @@
+//View滑动方法一and二：
+    // 视图坐标方式
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        //每次回调的时候获取一下触摸点的坐标
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                // 记录触摸点坐标
+                lastX = x;
+                lastY = y;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // 计算偏移量
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                // 在当前left、top、right、bottom的基础上加上偏移量
+                layout(getLeft() + offsetX,
+                        getTop() + offsetY,
+                        getRight() + offsetX,
+                        getBottom() + offsetY);
+//                        offsetLeftAndRight(offsetX);
+//                        offsetTopAndBottom(offsetY);
+                break;
+        }
+        return true;
+    }
+
+    /**
+     * 滑动方法三
+     * @param event
+     * @return
+     */
+    // 绝对坐标方式
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int rawX = (int) (event.getRawX());
+        int rawY = (int) (event.getRawY());
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                // 记录触摸点坐标
+                lastX = rawX;
+                lastY = rawY;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // 计算偏移量
+                int offsetX = rawX - lastX;
+                int offsetY = rawY - lastY;
+                // 在当前left、top、right、bottom的基础上加上偏移量
+                layout(getLeft() + offsetX,
+                        getTop() + offsetY,
+                        getRight() + offsetX,
+                        getBottom() + offsetY);
+                // 重新设置初始坐标
+                lastX = rawX;
+                lastY = rawY;
+                break;
+        }
+        return true;
+    }
+
+    /**
+     * 滑动方法四
+     * @param event
+     * @return
+     */
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                // 记录触摸点坐标
+                lastX = (int) event.getX();
+                lastY = (int) event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // 计算偏移量
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) getLayoutParams();
+//                LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) getLayoutParams();
+                layoutParams.leftMargin = getLeft() + offsetX;
+                layoutParams.topMargin = getTop() + offsetY;
+                setLayoutParams(layoutParams);
+                break;
+        }
+        return true;
+    }
+
+    /**
+     * 滑动方法五
+     * @param event
+     * @return
+     */
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                lastX = (int) event.getX();
+                lastY = (int) event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                //注意：移动是瞬间完成的
+                //如果将scrollBy中参数dx 和dy设置为正数，那么content将向坐标轴负向移动;
+                //如果将scrollBy中参数的dx 和dy 设置为负数，那么content将向坐标轴正方向移动
+                ((View) getParent()).scrollBy(-offsetX, -offsetY);
+                break;
+        }
+        return true;
+    }
+
+    /**
+     * 滑动后回到原点
+     * @param event
+     * @return
+     */
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                lastX = (int) event.getX();
+                lastY = (int) event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                ((View) getParent()).scrollBy(-offsetX, -offsetY);
+                break;
+            case MotionEvent.ACTION_UP:
+                // 3.手指离开时，执行滑动过程
+                View viewGroup = ((View) getParent());
+                mScroller.startScroll(
+                        viewGroup.getScrollX(),//开始位置
+                        viewGroup.getScrollY(),
+                        -viewGroup.getScrollX(),//偏移位置
+                        -viewGroup.getScrollY());
+                invalidate();
+                break;
+        }
+        return true;
+    }
