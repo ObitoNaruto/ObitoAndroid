@@ -1,0 +1,804 @@
+
+1.控件架构
+Activity<-PhoneWindow<-DecorView<-TitleView & ContentView
+
+2.绘制View需要知道大小和位置，对应的是测量大小和设置位置:onMeasure和onLayout
+
+2.1 测量模式
+EXACTLY:layout_width为具体值或者match_parent(占据父View大小)
+AT_MOST:layout_width为wrap_content，控件大小随着控件的子控件或内容的变化而变化,此时控件的尺寸只要不超过父控件允许的的最大尺寸即可
+UNSPECIFIED:不指定具体大小测试模式，想多大就多大
+
+备注：View类默认的onMeasure方法只支持EXACTLY
+
+测试onMeasure模板代码
+public class TeachingView extends View {
+
+    public TeachingView(Context context) {
+        super(context);
+    }
+
+    public TeachingView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public TeachingView(Context context, AttributeSet attrs,
+                        int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    /**
+     * 重写onMeasure方法，最终的工作就是把
+     * 测量后的宽高值作为参数设置给setMeasuredDimension方法
+     * @param widthMeasureSpec
+     * @param heightMeasureSpec
+     */
+    @Override
+    protected void onMeasure(int widthMeasureSpec,
+                             int heightMeasureSpec) {
+//        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        setMeasuredDimension(
+                measureWidth(widthMeasureSpec),
+                measureHeight(heightMeasureSpec));
+    }
+
+    /**
+     * 宽的自定义测量值
+     * @param measureSpec
+     * @return
+     */
+    private int measureWidth(int measureSpec) {
+        int result = 0;
+        //获取测量模式
+        int specMode = MeasureSpec.getMode(measureSpec);
+        //获取测量值大小
+        int specSize = MeasureSpec.getSize(measureSpec);
+
+        //通过不同的测量模式，给出不同的测量值
+        if (specMode == MeasureSpec.EXACTLY) {//对应xml设置具体值或者match_parent，占据父View的大小
+            result = specSize;
+        } else {
+            result = 200;
+            if (specMode == MeasureSpec.AT_MOST) {//对应xml设置wrap_content，控件大小一般随着控件的子控件或内容的变化二变化，不超过父控件允许的的最大尺寸
+                result = Math.min(result, specSize);
+            }
+        }
+        return result;
+    }
+
+    private int measureHeight(int measureSpec) {
+        int result = 0;
+        int specMode = MeasureSpec.getMode(measureSpec);
+        int specSize = MeasureSpec.getSize(measureSpec);
+
+        if (specMode == MeasureSpec.EXACTLY) {
+            result = specSize;
+        } else {
+            result = 200;
+            if (specMode == MeasureSpec.AT_MOST) {
+                result = Math.min(result, specSize);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        canvas.drawColor(Color.GRAY);
+        int width = getWidth();
+        int height = getHeight();
+        Log.d("xys", "width : " + width + " height : " + height);
+    }
+}
+
+2.2 自定义View
+
+View中一些重要的回调方法：
+onFinishInflate():从xml加载组件后回调
+onSizeChanged():组件大小改变时回调
+onMeasure():回调该方法进行测量
+onLayout():回调该方法确定显示的位置
+onTouchEvent():监听到触摸事件时回调
+
+三种自定义控件的方法：
+对现有控件进行拓展
+通过组合来实现新的控件
+重写View来实现全新的控件
+
+2.2.1 对现有控件进行拓展实例-为TextView添加一个背景框
+/**
+ * 现有组件进行扩展让一个TextView的背景更加丰富
+ *
+ */
+public class MyTextView extends TextView {
+
+    private Paint mPaint1, mPaint2;
+
+    public MyTextView(Context context) {
+        super(context);
+        initView();
+    }
+
+    public MyTextView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public MyTextView(Context context, AttributeSet attrs,
+                      int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView();
+    }
+
+    /**
+     * 初始化画笔等工作
+     */
+    private void initView() {
+
+        mPaint1 = new Paint();
+        mPaint1.setColor(getResources().getColor(
+                android.R.color.holo_blue_light));
+        mPaint1.setStyle(Paint.Style.FILL);
+        mPaint2 = new Paint();
+        mPaint2.setColor(Color.YELLOW);
+        mPaint2.setStyle(Paint.Style.FILL);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        /**
+         * 1.在回调父类方法前，实现自己的逻辑，对TextView来说即是在绘制文本内容前
+         */
+
+        // 绘制外层矩形
+        canvas.drawRect(
+                0,
+                0,
+                getMeasuredWidth(),
+                getMeasuredHeight(),
+                mPaint1);
+        // 绘制内层矩形
+        canvas.drawRect(
+                10,
+                10,
+                getMeasuredWidth() - 10,
+                getMeasuredHeight() - 10,
+                mPaint2);
+        canvas.save();
+        // 绘制文字前平移10像素
+        canvas.translate(10, 0);
+        // 父类完成的方法，即绘制文本
+        super.onDraw(canvas);
+
+        /**
+         * 2.在回调父类方法后，实现自己的逻辑，对TextView来说即是在绘制文本内容后
+         */
+        canvas.restore();
+    }
+}
+
+2.2.2 对现有控件进行拓展实例-使用LinearGradient Shader和Matrix实现一个动态的文字闪动效果
+/**
+ * 自定义View之对现有组件进行扩展--使用LinearGradient Shader和Matrix实现一个动态的文字闪动效果
+ */
+public class ShineTextView extends TextView {
+
+    private LinearGradient mLinearGradient;
+    private Matrix mGradientMatrix;
+    private Paint mPaint;
+    private int mViewWidth = 0;
+    private int mTranslate = 0;
+
+    public ShineTextView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    /**
+     * 此方法在组件大小改变时回调
+     * @param w
+     * @param h
+     * @param oldw
+     * @param oldh
+     */
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        if (mViewWidth == 0) {
+            mViewWidth = getMeasuredWidth();
+            if (mViewWidth > 0) {
+                mPaint = getPaint();
+                mLinearGradient = new LinearGradient(
+                        0,
+                        0,
+                        mViewWidth,
+                        0,
+                        new int[]{
+                                Color.BLUE, 0xffffffff,
+                                Color.BLUE},
+                        null,
+                        Shader.TileMode.CLAMP);
+                mPaint.setShader(mLinearGradient);
+                mGradientMatrix = new Matrix();
+            }
+        }
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if (mGradientMatrix != null) {
+            mTranslate += mViewWidth / 5;
+            if (mTranslate > 2 * mViewWidth) {
+                mTranslate = -mViewWidth;
+            }
+            mGradientMatrix.setTranslate(mTranslate, 0);
+            mLinearGradient.setLocalMatrix(mGradientMatrix);
+            postInvalidateDelayed(100);
+        }
+    }
+}
+
+2.2.3 创建复合控件-标题栏TitleBar模板，提供接口，可以定制模板中的文字、颜色和行为等信息
+/**
+ * 创建复合组件--标题栏TitleBar模板，提供接口，可以定制模板中的文字、颜色和行为等信息
+ * 创建步骤：
+ * 1.定义属性：在res资源目录values目录下创建一个attr.xml属性文件，在其中进行定义
+ * 例如：
+ * <resources>
+
+ <declare-styleable name="TopBar">
+ <attr name="title" format="string" />
+ <attr name="titleTextSize" format="dimension" />
+ <attr name="titleTextColor" format="color" />
+
+ <attr name="leftTextColor" format="color" />
+ <attr name="leftBackground" format="reference|color" />
+ <attr name="leftText" format="string" />
+
+ <attr name="rightTextColor" format="color" />
+ <attr name="rightBackground" format="reference|color" />
+ <attr name="rightText" format="string" />
+ </declare-styleable>
+
+ </resources>
+
+ *2.获取xml布局中自定义的属性
+ * TypedArray ta = context.obtainStyledAttributes(attrs，R.styleable.TopBar);
+ *
+ * 3.组合控件
+ *
+ * 4.实现接口回调
+ *
+ *
+ * 5.引用UI模板
+ * xmlns:custom="http://schemas.android.com/apk/res-auto"
+ */
+public class TopBar extends RelativeLayout {
+
+    // 包含topbar上的元素：左按钮、右按钮、标题
+    private Button mLeftButton, mRightButton;
+    private TextView mTitleView;
+
+    // 布局属性，用来控制组件元素在ViewGroup中的位置
+    private LayoutParams mLeftParams, mTitlepParams, mRightParams;
+
+    // 左按钮的属性值，即我们在atts.xml文件中定义的属性
+    private int mLeftTextColor;
+    private Drawable mLeftBackground;
+    private String mLeftText;
+
+    // 右按钮的属性值，即我们在atts.xml文件中定义的属性
+    private int mRightTextColor;
+    private Drawable mRightBackground;
+    private String mRightText;
+
+    // 标题的属性值，即我们在atts.xml文件中定义的属性
+    private float mTitleTextSize;
+    private int mTitleTextColor;
+    private String mTitle;
+
+    // 映射传入的接口对象
+    private topbarClickListener mListener;
+
+    public TopBar(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+    }
+
+    public TopBar(Context context) {
+        super(context);
+    }
+
+    public TopBar(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        // 设置topbar的背景
+        setBackgroundColor(0xFFF59563);
+        // 通过这个方法，将你在atts.xml中定义的declare-styleable
+        // 的所有属性的值存储到TypedArray中
+        TypedArray ta = context.obtainStyledAttributes(attrs,
+                R.styleable.TopBar);
+        // 从TypedArray中取出对应的值来为要设置的属性赋值
+        mLeftTextColor = ta.getColor(
+                R.styleable.TopBar_leftTextColor, 0);
+        mLeftBackground = ta.getDrawable(
+                R.styleable.TopBar_leftBackground);
+        mLeftText = ta.getString(R.styleable.TopBar_leftText);
+
+        mRightTextColor = ta.getColor(
+                R.styleable.TopBar_rightTextColor, 0);
+        mRightBackground = ta.getDrawable(
+                R.styleable.TopBar_rightBackground);
+        mRightText = ta.getString(R.styleable.TopBar_rightText);
+
+        mTitleTextSize = ta.getDimension(
+                R.styleable.TopBar_titleTextSize, 10);
+        mTitleTextColor = ta.getColor(
+                R.styleable.TopBar_titleTextColor, 0);
+        mTitle = ta.getString(R.styleable.TopBar_title);
+
+        // 获取完TypedArray的值后，一般要调用
+        // recyle方法来避免重新创建的时候的错误
+        //资源回收
+        ta.recycle();
+
+        mLeftButton = new Button(context);
+        mRightButton = new Button(context);
+        mTitleView = new TextView(context);
+
+        // 为创建的组件元素赋值
+        // 值就来源于我们在引用的xml文件中给对应属性的赋值
+        mLeftButton.setTextColor(mLeftTextColor);
+        mLeftButton.setBackground(mLeftBackground);
+        mLeftButton.setText(mLeftText);
+
+        mRightButton.setTextColor(mRightTextColor);
+        mRightButton.setBackground(mRightBackground);
+        mRightButton.setText(mRightText);
+
+        mTitleView.setText(mTitle);
+        mTitleView.setTextColor(mTitleTextColor);
+        mTitleView.setTextSize(mTitleTextSize);
+        mTitleView.setGravity(Gravity.CENTER);
+
+        // 为组件元素设置相应的布局元素
+        mLeftParams = new LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.MATCH_PARENT);
+        mLeftParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT, TRUE);
+        // 添加到ViewGroup
+        addView(mLeftButton, mLeftParams);
+
+        mRightParams = new LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.MATCH_PARENT);
+        mRightParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, TRUE);
+        addView(mRightButton, mRightParams);
+
+        mTitlepParams = new LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.MATCH_PARENT);
+        mTitlepParams.addRule(RelativeLayout.CENTER_IN_PARENT, TRUE);
+        addView(mTitleView, mTitlepParams);
+
+        // 按钮的点击事件，不需要具体的实现，
+        // 只需调用接口的方法，回调的时候，会有具体的实现
+        mRightButton.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                mListener.rightClick();
+            }
+        });
+
+        mLeftButton.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                mListener.leftClick();
+            }
+        });
+    }
+
+    // 暴露一个方法给调用者来注册接口回调
+    // 通过接口来获得回调者对接口方法的实现
+    public void setOnTopbarClickListener(topbarClickListener mListener) {
+        this.mListener = mListener;
+    }
+
+    /**
+     * 设置按钮的显示与否 通过id区分按钮，flag区分是否显示
+     *
+     * @param id   id
+     * @param flag 是否显示
+     */
+    public void setButtonVisable(int id, boolean flag) {
+        if (flag) {
+            if (id == 0) {
+                mLeftButton.setVisibility(View.VISIBLE);
+            } else {
+                mRightButton.setVisibility(View.VISIBLE);
+            }
+        } else {
+            if (id == 0) {
+                mLeftButton.setVisibility(View.GONE);
+            } else {
+                mRightButton.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    // 接口对象，实现回调机制，在回调方法中
+    // 通过映射的接口对象调用接口中的方法
+    // 而不用去考虑如何实现，具体的实现由调用者去创建
+    public interface topbarClickListener {
+        // 左按钮点击事件
+        void leftClick();
+        // 右按钮点击事件
+        void rightClick();
+    }
+}
+
+2.2.4 重写View来实现全新的控件--弧线展示图
+public class CircleProgressView extends View {
+
+    private int mMeasureHeigth;
+    private int mMeasureWidth;
+
+    private Paint mCirclePaint;
+    /**
+     * 圆心坐标
+     */
+    private float mCircleXY;
+    /**
+     * 半径
+     */
+    private float mRadius;
+
+    private Paint mArcPaint;
+    /**
+     * 弧线的外接矩形
+     */
+    private RectF mArcRectF;
+    private float mSweepAngle;
+    private float mSweepValue = 66;
+
+    private Paint mTextPaint;
+    private String mShowText;
+    private float mShowTextSize;
+
+    public CircleProgressView(Context context, AttributeSet attrs,
+                              int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    public CircleProgressView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public CircleProgressView(Context context) {
+        super(context);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec,
+                             int heightMeasureSpec) {
+        mMeasureWidth = MeasureSpec.getSize(widthMeasureSpec);
+        mMeasureHeigth = MeasureSpec.getSize(heightMeasureSpec);
+        setMeasuredDimension(mMeasureWidth, mMeasureHeigth);
+        initView();
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        // 绘制圆
+        canvas.drawCircle(mCircleXY, mCircleXY, mRadius, mCirclePaint);
+        // 绘制弧线
+        canvas.drawArc(mArcRectF, 270, mSweepAngle, false, mArcPaint);
+        // 绘制文字
+        canvas.drawText(mShowText, 0, mShowText.length(),
+                mCircleXY, mCircleXY + (mShowTextSize / 4), mTextPaint);
+    }
+
+    private void initView() {
+        float length = 0;
+        //取控件宽高的较小值
+        if (mMeasureHeigth >= mMeasureWidth) {
+            length = mMeasureWidth;
+        } else {
+            length = mMeasureHeigth;
+        }
+
+        //设置好绘制圆形的参数
+        mCircleXY = length / 2;//圆心坐标值
+        mRadius = (float) (length * 0.5 / 2);//半径
+        mCirclePaint = new Paint();
+        mCirclePaint.setAntiAlias(true);
+        mCirclePaint.setColor(getResources().getColor(
+                android.R.color.holo_blue_bright));
+
+        //设置好绘制弧形的参数
+        mArcRectF = new RectF(//椭圆的外接矩形
+                (float) (length * 0.1),
+                (float) (length * 0.1),
+                (float) (length * 0.9),
+                (float) (length * 0.9));
+        mSweepAngle = (mSweepValue / 100f) * 360f;//弧形角度
+        mArcPaint = new Paint();
+        mArcPaint.setAntiAlias(true);
+        mArcPaint.setColor(getResources().getColor(
+                android.R.color.holo_blue_bright));
+        mArcPaint.setStrokeWidth((float) (length * 0.1));
+        mArcPaint.setStyle(Style.STROKE);
+
+        //绘制文字的参数
+        mShowText = setShowText();
+        mShowTextSize = setShowTextSize();
+        mTextPaint = new Paint();
+        mTextPaint.setTextSize(mShowTextSize);
+        mTextPaint.setTextAlign(Paint.Align.CENTER);
+    }
+
+    private float setShowTextSize() {
+        this.invalidate();
+        return 50;
+    }
+
+    private String setShowText() {
+        this.invalidate();
+        return "Android Skill";
+    }
+
+    public void forceInvalidate() {
+        this.invalidate();
+    }
+
+    public void setSweepValue(float sweepValue) {
+        if (sweepValue != 0) {
+            mSweepValue = sweepValue;
+        } else {
+            mSweepValue = 25;
+        }
+        this.invalidate();
+    }
+}
+
+2.2.5 重写View来实现全新的控件--音频条形图
+public class VolumeView extends View {
+
+    private int mWidth;
+    private int mRectWidth;
+    private int mRectHeight;
+    private Paint mPaint;
+    private int mRectCount;
+    private int offset = 5;
+    private double mRandom;
+    private LinearGradient mLinearGradient;
+
+    public VolumeView(Context context) {
+        super(context);
+        initView();
+    }
+
+    public VolumeView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public VolumeView(Context context, AttributeSet attrs,
+                      int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView();
+    }
+
+    private void initView() {
+        mPaint = new Paint();
+        mPaint.setColor(Color.BLUE);
+        mPaint.setStyle(Paint.Style.FILL);
+        mRectCount = 12;
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        mWidth = getWidth();
+        mRectHeight = getHeight();
+        mRectWidth = (int) (mWidth * 0.6 / mRectCount);
+        mLinearGradient = new LinearGradient(
+                0,
+                0,
+                mRectWidth,
+                mRectHeight,
+                Color.YELLOW,
+                Color.BLUE,
+                Shader.TileMode.CLAMP);
+        mPaint.setShader(mLinearGradient);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        for (int i = 0; i < mRectCount; i++) {
+            mRandom = Math.random();
+            float currentHeight = (float) (mRectHeight * mRandom);
+            canvas.drawRect(
+                    (float) (mWidth * 0.4 / 2 + mRectWidth * i + offset),
+                    currentHeight,
+                    (float) (mWidth * 0.4 / 2 + mRectWidth * (i + 1)),
+                    mRectHeight,
+                    mPaint);
+        }
+        postInvalidateDelayed(300);
+    }
+}
+
+2.2.6 自定义ViewGroup
+
+备注：重写onMeasure来对子View进行测量,重写onLayout来确定子View的位置，重写onTouchEvent增加响应事件
+
+getScrollX 其实获取的值，就是这块 幕布在窗口左边界时候的值了，而幕布上面哪个点是原点（0，0）呢？就是初始化时内容显示的位置。
+
+所以当我们将幕布往右推动的时候，幕布在窗口左边界的值就会在0的左边（-100），而向左推动，则其值会是在0的右边（100）。
+
+getScrollX() 就是当前view的左上角相对于母视图的左上角的X轴偏移量（）。同理，getScrollY就是当前view的左上角相对于母视图的左上角的Y轴偏移量。
+
+
+public class MyScrollView extends ViewGroup {
+
+    private int mScreenHeight;
+    private Scroller mScroller;
+    private int mLastY;
+    private int mStart;
+    private int mEnd;
+
+    public MyScrollView(Context context) {
+        super(context);
+        initView(context);
+    }
+
+    public MyScrollView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView(context);
+    }
+
+    public MyScrollView(Context context, AttributeSet attrs,
+                        int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView(context);
+    }
+
+    private void initView(Context context) {
+        WindowManager wm = (WindowManager) context.getSystemService(
+                Context.WINDOW_SERVICE);
+        DisplayMetrics dm = new DisplayMetrics();
+        wm.getDefaultDisplay().getMetrics(dm);
+        mScreenHeight = dm.heightPixels;//屏幕高度
+        mScroller = new Scroller(context);
+    }
+
+    @Override
+    protected void onLayout(boolean changed,
+                            int l, int t, int r, int b) {
+        int childCount = getChildCount();//子控件的个数
+        // 设置ViewGroup的高度
+        MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
+        mlp.height = mScreenHeight * childCount;//当前控件的高度等于n个子控件的高度之和（n个屏幕高度之和）
+        setLayoutParams(mlp);//设置当前控件的高度
+
+        for (int i = 0; i < childCount; i++) {
+            View child = getChildAt(i);
+            if (child.getVisibility() != View.GONE) {//子控件非gone状态
+                child.layout(l, i * mScreenHeight,
+                        r, (i + 1) * mScreenHeight);
+            }
+        }
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec,
+                             int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        int count = getChildCount();
+        for (int i = 0; i < count; ++i) {
+            View childView = getChildAt(i);
+            measureChild(childView,
+                    widthMeasureSpec, heightMeasureSpec);
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mLastY = y;
+                //记录触碰开始的点
+                mStart = getScrollY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (!mScroller.isFinished()) {
+                    mScroller.abortAnimation();
+                }
+                int dy = mLastY - y;
+                ///初始化时整个view向下滑动
+                if (getScrollY() < 0) {
+                    dy = 0;
+                }
+                ///初始化时整个view向上滑动（大于一屏的view）
+                if (getScrollY() > getHeight() - mScreenHeight) {
+                    dy = 0;
+                }
+                scrollBy(0, dy);
+                mLastY = y;
+                break;
+            case MotionEvent.ACTION_UP:
+                //记录触碰终点
+                mEnd = getScrollY();
+                int dScrollY = mEnd - mStart;
+                //手指向上滑动
+                if (dScrollY > 0) {
+                    //手指向上滑动小于一定距离，则回滚到原来的位置（即向下滑动）
+                    if (dScrollY < mScreenHeight / 3) {
+                        //
+                        mScroller.startScroll(
+                                0, getScrollY(),
+                                0, -dScrollY);
+                    } else {
+                        //手指向上滑动大于一定距离，滑动到下一个View
+                        mScroller.startScroll(
+                                0, getScrollY(),
+                                0, mScreenHeight - dScrollY);
+                    }
+                }
+                //手指向下滑动
+                else {
+                    //手指向下滑动小于一定距离，则回滚到原来位置(即向上滑动，startScroll第四个参数正值表示向上滑动，负值为向下滑动)
+                    if (-dScrollY < mScreenHeight / 3) {
+                        mScroller.startScroll(
+                                0, getScrollY(),
+                                0, -dScrollY);
+                    } else {
+                        //手指向下滑动大于等于一定距离，则滑动到上一个View(即向下滚动)
+                        mScroller.startScroll(
+                                0, getScrollY(),
+                                0, -mScreenHeight - dScrollY);
+                    }
+                }
+                break;
+        }
+        postInvalidate();
+        return true;
+    }
+
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        if (mScroller.computeScrollOffset()) {
+            scrollTo(0, mScroller.getCurrY());
+            postInvalidate();
+        }
+    }
+}
+
+3.事件拦截机制
+view层级：ViewGroupA<-ViewGroupB<-View
+拦截顺序：
+ViewGroupA:dispatchTouchEvent->ViewGroupA:onInterceptTouchEvent->
+ViewGroupB:dispatchTouchEvent->ViewGroupB:onInterceptTouchEvent->
+View:dispatchTouchEvent->View:onTouchEvent->
+ViewGroupB:onTouchEvent->
+ViewGroupA:onTouchEvent
+
+
+
+
+
+
+
+
+
+
+
+
+
+

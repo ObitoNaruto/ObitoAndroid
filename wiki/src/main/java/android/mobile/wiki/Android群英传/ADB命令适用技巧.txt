@@ -1,0 +1,78 @@
+
+1.adb version
+备注：查询配置是否成功
+2.adb shell
+ls | grep "data"
+
+3.adb list targets
+备注：显示系统中全部Android平台
+
+4.adb install -r 应用程序.apk
+备注：安装apk程序,此方法安装到: data/data目录下
+adb install -r 应用程序.apk F:\Test.apk
+
+5.adb push <local> <remote>
+备注：安装
+eg:adb push D:\Test.apk /system/app/
+
+6.向手机写入文件
+adb push D:\file.txt /system/temp/
+
+7.从手机获取文件
+adb push /system/temp/ D:\file.txt
+
+8.查看Log
+adb shell -> logcat | grep "abc"
+
+9.删除应用
+adb remount //重新挂载系统分区，使系统分区重新可写
+adb shell
+cd system/app
+rm *.apk
+
+10.查看系统盘符
+adb shell df
+
+11.输出所有已安装的应用
+adb shell pm list packages -f
+
+12.模拟按键输入
+adb shell input keyevent 数字
+eg:
+adb shell input kevevent 82 //menu
+adb shell input kevevent 3 //home
+adb shell input keyevent 19 //up
+adb shell input keyevent 20 //down
+adb shell input keyevent 21 //left
+adb shell input keyevent 22 //right
+adb shell input keyevent 66 //enter
+adb shell input keyevent 4 //back
+
+13.模拟滑动输入
+adb shell input touchscreen swipe 18 665 18 350
+
+14.查看运行状态
+14.1 adb shell dumpsys
+14.2 dumpsys activity | grep "tencent"
+
+15.启动一个activity
+adb shell am start -n 包名/包名+类名
+
+16.录制屏幕
+adb shell screenrecord /sdcard/demo.mp4
+
+17.重新启动
+adb reboot
+
+
+
+
+
+
+
+
+
+
+
+
+
