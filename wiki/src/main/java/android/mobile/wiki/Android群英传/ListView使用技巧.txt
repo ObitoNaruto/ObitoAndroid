@@ -1,0 +1,428 @@
+
+1.ListView常用优化技巧
+1.1 使用ViewHolder模式提高效率
+备注：可提高50%以上
+1.2 设置项目item分割线
+eg:
+android:divider="@android:color/darker_gray"
+android:divider="10dp"
+
+分割线透明：android:divider="@null"
+
+1.3 隐藏ListView的滚动条
+android:scrollbars="none"
+
+1.4 取消ListView的item点击效果
+android:listSelector="#00000000"
+or
+android:listSelector="@android:color/transparent"
+
+1.5 设置listView需要显示在第几项
+listview.setSelection(N);//N表示第N个Item
+
+以上是瞬间完成的动作，下面是平滑移动：
+listView.smoothScrollBy(distance, duration);
+listview.smoothScrollByOffset(offset);
+listview.smoothScrollToPosition(index);
+
+1.6动态修改listView
+eg:
+mData.add("new");
+mAdapter.notifyDataSetChanged();
+备注：在调用notifyDataSetChanged方法时，必须保证传进adapter的数据list是同一个list而不是其他对象，否则将无法实现动态修改listview
+
+1.7遍历listView中所有的item
+eg:
+for(int i = 0; i < mListView.getChildCount(); i++){
+    View view = mListView.getChildAt(i);
+}
+
+1.8 处理空listView
+
+eg:
+ListView listView = (ListView)findViewById(R.id.listview);
+listView.setEmptyView(R.id.empty_view);
+
+1.9 listView滑动监听
+
+GestureDetector手势识别，VelocityTracker滑动速度检测
+1.9.1 OnTouchListener
+1.9.2 onScrollListener
+
+OnScrollListener.SCROLL_STATE_IDLE:滚动停止
+OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:正在滚动
+OnScrollListener.SCROLL_STATE_FLING:手指抛动时，即手机用力滑动，在离开后listView由于惯性继续滑动的状态
+
+
+firstVisibleItem:当前能看见的第一个item的id(从０开始)
+visibleItemCount:当前能看见的Item的总数
+totalItemCount:整个listView的item总数
+
+滚动到最后一行：
+if(firstVisibleItem + visibleItemCount == totalItemCount ** totalItemCount > 0){
+    //滚动到最后一行
+}
+
+
+判断滚动的方向：
+if(firstVisibleItem > lastVisibleItemPosition){
+    //上滑
+}else if(firstVisibleItem < lastVisibleItemPosition){
+    //下滑
+}
+
+lastVisibleItemPosition = firstVisibleItem;
+
+//获取可视区域内最后一个item的id
+mListView.getLastVisiblePosition();
+//获取可视区域内第一个item的id
+mListView.getFirstVisiblePosition();
+
+2.常用拓展
+
+2.1 具有弹性的ListView
+public class FlexibleListView extends ListView {
+
+    private static int mMaxOverDistance = 50;
+    private Context mContext;
+
+    public FlexibleListView(Context context, AttributeSet attrs,
+                            int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        this.mContext = context;
+        initView();
+    }
+
+    public FlexibleListView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        this.mContext = context;
+        initView();
+    }
+
+    public FlexibleListView(Context context) {
+        super(context);
+        this.mContext = context;
+        initView();
+    }
+
+    private void initView() {
+        DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
+        float density = metrics.density;//密度
+        mMaxOverDistance = (int) (density * mMaxOverDistance);//这里这么处理是为了满足多分辨率需求
+    }
+
+    @Override
+    protected boolean overScrollBy(int deltaX, int deltaY,
+                                   int scrollX, int scrollY,
+                                   int scrollRangeX, int scrollRangeY,
+                                   int maxOverScrollX, int maxOverScrollY,
+                                   boolean isTouchEvent) {
+        return super.overScrollBy(deltaX, deltaY,
+                scrollX, scrollY,
+                scrollRangeX, scrollRangeY,
+                maxOverScrollX, mMaxOverDistance,
+                isTouchEvent);
+    }
+}
+
+2.2 自动显示、隐藏布局的ListView
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <ListView
+        android:id="@+id/listview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:headerDividersEnabled="false" />
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/holo_blue_light" />
+
+</RelativeLayout>
+
+public class ScrollHideListView extends Activity {
+
+    private Toolbar mToolbar;
+    private ListView mListView;
+    private String[] mStr = new String[20];
+    private int mTouchSlop;
+    private float mFirstY;
+    private float mCurrentY;
+    private int direction;
+    private ObjectAnimator mAnimator;
+    private boolean mShow = true;
+
+    View.OnTouchListener myTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    mFirstY = event.getY();
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    mCurrentY = event.getY();
+                    if (mCurrentY - mFirstY > mTouchSlop) {//向下滑动
+                        direction = 0;// down
+                    } else if (mFirstY - mCurrentY > mTouchSlop) {//向上滑动
+                        direction = 1;// up
+                    }
+                    if (direction == 1) {//向上滑动隐藏ToolBar
+                        if (mShow) {//mShow初始状态为true
+                            toolbarAnim(0);//hide
+                            mShow = !mShow;
+                        }
+                    } else if (direction == 0) {//向下滑动显示ToolBar
+                        if (!mShow) {
+                            toolbarAnim(1);//show
+                            mShow = !mShow;
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    break;
+            }
+            return false;
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.scroll_hide);
+        mTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();//定义此变量用来获取系统认为的最低滑动距离
+        mToolbar = (Toolbar) findViewById(R.id.toolbar);
+        mListView = (ListView) findViewById(R.id.listview);
+        //mock列表数据
+        for (int i = 0; i < mStr.length; i++) {
+            mStr[i] = "Item " + i;
+        }
+        //给ListView增加一个HeaderView
+        View header = new View(this);
+        header.setLayoutParams(new AbsListView.LayoutParams(
+                AbsListView.LayoutParams.MATCH_PARENT,
+                (int) getResources().getDimension(
+                        R.dimen.abc_action_bar_default_height_material)));//高度是ToolBar的高度
+        mListView.addHeaderView(header);
+
+        mListView.setAdapter(new ArrayAdapter<String>(
+                ScrollHideListView.this,
+                android.R.layout.simple_expandable_list_item_1,
+                mStr));
+        mListView.setOnTouchListener(myTouchListener);
+    }
+
+    private void toolbarAnim(int flag) {
+        //做一层保护
+        if (mAnimator != null && mAnimator.isRunning()) {
+            mAnimator.cancel();
+        }
+        if (flag == 0) {//向上滑动隐藏ToolBar动画
+            mAnimator = ObjectAnimator.ofFloat(mToolbar,
+                    "translationY", mToolbar.getTranslationY(), 0);
+        } else {//向下滑动显示ToolBar动画
+            mAnimator = ObjectAnimator.ofFloat(mToolbar,
+                    "translationY", mToolbar.getTranslationY(),
+                    -mToolbar.getHeight());
+        }
+        mAnimator.start();
+    }
+}
+备注：主题一定要NoActionBar样式的
+ <style name="AppTheme1" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+    </style>
+
+compile 'com.android.support:appcompat-v7:23.0.1'
+
+2.3 聊天ListView
+
+public class ChatItemListViewAdapter extends BaseAdapter {
+
+    private List<ChatItemListViewBean> mData;
+    private LayoutInflater mInflater;
+
+    public ChatItemListViewAdapter(Context context,
+                                   List<ChatItemListViewBean> data) {
+        this.mData = data;
+        mInflater = LayoutInflater.from(context);
+    }
+
+    @Override
+    public int getCount() {
+        return mData.size();
+    }
+
+    @Override
+    public Object getItem(int position) {
+        return mData.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        ChatItemListViewBean bean = mData.get(position);
+        return bean.getType();
+    }
+
+    @Override
+    public int getViewTypeCount() {
+        return 2;
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        ViewHolder holder;
+        if (convertView == null) {
+            if (getItemViewType(position) == 0) {
+                holder = new ViewHolder();
+                convertView = mInflater.inflate(
+                        R.layout.chat_item_itemin, null);
+                holder.icon = (ImageView) convertView.findViewById(
+                        R.id.icon_in);
+                holder.text = (TextView) convertView.findViewById(
+                        R.id.text_in);
+            } else {
+                holder = new ViewHolder();
+                convertView = mInflater.inflate(
+                        R.layout.chat_item_itemout, null);
+                holder.icon = (ImageView) convertView.findViewById(
+                        R.id.icon_out);
+                holder.text = (TextView) convertView.findViewById(
+                        R.id.text_out);
+            }
+            convertView.setTag(holder);
+        } else {
+            holder = (ViewHolder) convertView.getTag();//这里有一个疑问，这里的convertView如何区分是消息发送者还是接收者
+        }
+        holder.icon.setImageBitmap(mData.get(position).getIcon());
+        holder.text.setText(mData.get(position).getText());
+        return convertView;
+    }
+
+    public final class ViewHolder {
+        public ImageView icon;
+        public TextView text;
+    }
+}
+
+
+2.4 动态改变ListView布局
+
+public class FocusListViewTest extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.focus);
+        ListView listView = (ListView) findViewById(R.id.focus_listView);
+        List<String> data = new ArrayList<String>();
+        data.add("I am item 1");
+        data.add("I am item 2");
+        data.add("I am item 3");
+        data.add("I am item 4");
+        data.add("I am item 5");
+        final FocusListViewAdapter adapter = new FocusListViewAdapter(this, data);
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                adapter.setCurrentItem(position);
+                adapter.notifyDataSetChanged();
+            }
+        });
+    }
+}
+
+public class FocusListViewAdapter extends BaseAdapter {
+
+    private List<String> mData;
+    private Context mContext;
+    private int mCurrentItem = 0;
+
+    public FocusListViewAdapter(Context context, List<String> data) {
+        this.mContext = context;
+        this.mData = data;
+    }
+
+    public int getCount() {
+        return mData.size();
+    }
+
+    public Object getItem(int position) {
+        return mData.get(position);
+    }
+
+    public long getItemId(int position) {
+        return position;
+    }
+
+    public View getView(int position, View convertView, ViewGroup parent) {
+        LinearLayout layout = new LinearLayout(mContext);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        if (mCurrentItem == position) {
+            layout.addView(addFocusView(position));
+        } else {
+            layout.addView(addNormalView(position));
+        }
+        return layout;
+    }
+
+    public void setCurrentItem(int currentItem) {
+        this.mCurrentItem = currentItem;
+    }
+
+    private View addFocusView(int i) {
+        ImageView iv = new ImageView(mContext);
+        iv.setImageResource(R.drawable.ic_launcher);
+        return iv;
+    }
+
+    private View addNormalView(int i) {
+        LinearLayout layout = new LinearLayout(mContext);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        ImageView iv = new ImageView(mContext);
+        iv.setImageResource(R.drawable.in_icon);
+        layout.addView(iv, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        TextView tv = new TextView(mContext);
+        tv.setText(mData.get(i));
+        layout.addView(tv, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        layout.setGravity(Gravity.CENTER);
+        return layout;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
