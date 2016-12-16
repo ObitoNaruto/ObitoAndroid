@@ -3,4 +3,13 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
+
+    <!-- banner view-->
+    <dimen name="viewpager_indicator_item_interval">3.33dip</dimen>
+    <dimen name="viewpager_indicator_item_dimen">5dip</dimen>
+
+    <!-- card trade record -->
+    <dimen name="card_trade_record_text_size_tab_item">13sp</dimen>
+    <dimen name="card_trade_record_tab_item_padding_left">18dp</dimen>
+    <dimen name="card_trade_record_tab_item_padding_right">18dp</dimen>
 </resources>
