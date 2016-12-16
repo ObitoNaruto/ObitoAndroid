@@ -1,0 +1,523 @@
+public class ThreadYieldDemo {
+
+    private static final int MAX = 5;
+
+    public static void main(String[] args) {
+//        joinDemo();
+         yield();
+//        yieldWithSync();
+        // waitWithSync();
+        // waitAndNotifyAll();
+    }
+=================================================================================================
+    // YieldTest.java的源码
+    static class YieldThread extends Thread {
+        public YieldThread(String name) {
+            super(name);
+        }
+
+        public synchronized void run() {
+            for (int i = 0; i < MAX; i++) {
+                System.out.printf("%s ,优先级为 : %d ----> %d\n", this.getName(), this.getPriority(), i);
+                // i整除4时，调用yield
+                if (i == 2) {
+                    Thread.yield();
+                }
+            }
+        }
+    }
+
+    static void yield() {
+        YieldThread t1 = new YieldThread("thread-1");
+        YieldThread t2 = new YieldThread("thread-2");
+        t1.start();
+        t2.start();
+    }
+    备注：yield，线程礼让，调用这个方法的线程主动让出执行权限
+========================================================================================================================
+    static void joinDemo() {
+        Worker worker1 = new Worker("work-1");
+        Worker worker2 = new Worker("work-2");
+
+        worker1.start();
+        System.out.println("启动线程1");
+        try {
+            worker1.join();
+            System.out.println("启动线程2");
+            worker2.start();
+            worker2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("主线程继续执行");
+    }
+
+    static class Worker extends Thread {
+
+        public Worker(String name) {
+            super(name);
+        }
+
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("work in " + getName());
+        }
+    }
+    备注：join,阻塞当前调用join函数时所在的线程，直到接收线程执行完毕之后再继续
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+    private static Object sLockObject = new Object();
+
+    // http://www.cnblogs.com/skywang12345/p/3479243.html
+    static void yieldWithSync() {
+        YieldSyncThread t1 = new YieldSyncThread("t1");
+        YieldSyncThread t2 = new YieldSyncThread("t2");
+        t1.start();
+        t2.start();
+    }
+
+    static class YieldSyncThread extends Thread {
+        public YieldSyncThread(String name) {
+            super(name);
+        }
+
+        public void run() {
+            // 获取obj对象的同步锁
+            synchronized (sLockObject) {
+                for (int i = 0; i < MAX; i++) {
+                    System.out.printf("%s [%d] ---> %d\n", this.getName(), this.getPriority(), i);
+                    // i整除4时，调用yield
+                    if (i % 4 == 0) {
+                        Thread.yield();
+                    }
+                }
+            }
+        } // end run
+    }
+
+    static void waitWithSync() {
+        WaitSyncThread t1 = new WaitSyncThread("t1");
+        WaitSyncThread t2 = new WaitSyncThread("t2");
+        t1.start();
+        t2.start();
+    }
+
+    static class WaitSyncThread extends Thread {
+        public WaitSyncThread(String name) {
+            super(name);
+        }
+
+        public void run() {
+            try {
+                doWork();
+            } catch (Exception e) {
+            }
+
+        } // end run
+
+        private void doWork() throws InterruptedException {
+            // 获取obj对象的同步锁
+            synchronized (sLockObject) {
+                for (int i = 0; i < MAX; i++) {
+                    System.out.printf("%s [%d] ---> %d\n", this.getName(), this.getPriority(),
+                            i);
+                    // i整除4时，调用wait
+                    if (i > 0 && i % 3 == 0) {
+                        sLockObject.wait(3000);
+                    }
+                }
+            }
+        }
+    }
+
+    static void waitAndNotifyAll() {
+        System.out.println("主线程  运行");
+        Thread thread = new WaitThread();
+        thread.start();
+        long startTime = System.currentTimeMillis();
+        try {
+            synchronized (sLockObject) {
+                System.out.println("主线程  等待");
+                sLockObject.wait();
+            }
+        } catch (Exception e) {
+        }
+        System.out
+                .println("主线程  继续 --> 等待耗时 : " + (System.currentTimeMillis() - startTime) + " ms");
+    }
+
+    static class WaitThread extends Thread {
+        @Override
+        public void run() {
+            try {
+                synchronized (sLockObject) {
+                    Thread.sleep(3000);
+                    sLockObject.notifyAll();
+                }
+            } catch (Exception e) {
+            }
+        }
+    }
+}
+
+２.Callable Future FutureTask
+public class FutureDemo {
+    // 线程池
+    static ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
+    // main函数
+    public static void main(String[] args) {
+        try {
+            futureWithRunnable();
+            futureWithCallable();
+            futureTask();
+        } catch (Exception e) {
+        }
+    }
+
+    /**
+     * 其中Runnable实现的是void run()方法，无返回值；Callable实现的是 V
+     * call()方法，并且可以返回执行结果。其中Runnable可以提交给Thread来包装下
+     * ，直接启动一个线程来执行，而Callable则一般都是提交给ExecuteService来执行。
+     */
+    private static void futureWithRunnable() throws InterruptedException, ExecutionException {
+        // 提交runnable则没有返回值, future没有数据
+        Future<?> result = mExecutor.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                fibc(20);
+            }
+        });
+
+        System.out.println("future result from runnable : " + result.get());
+    }
+
+    private static void futureWithCallable() throws InterruptedException, ExecutionException {
+        /**
+         * 提交Callable, 有返回值, future中能够获取返回值
+         */
+        Future<Integer> result2 = mExecutor.submit(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return fibc(20);
+            }
+        });
+
+        System.out.println("future result from callable : "
+                + result2.get());
+    }
+
+    private static void futureTask() throws InterruptedException, ExecutionException {
+        /**
+         * FutureTask则是一个RunnableFuture<V>，即实现了Runnbale又实现了Futrue<V>这两个接口，
+         * 另外它还可以包装Runnable(实际上会转换为Callable)和Callable
+         * <V>，所以一般来讲是一个符合体了，它可以通过Thread包装来直接执行，也可以提交给ExecuteService来执行
+         * ，并且还可以通过v get()返回执行结果，在线程体没有执行完成的时候，主线程一直阻塞等待，执行完则直接返回结果。
+         */
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(
+                new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return fibc(20);
+                    }
+                });
+        // 提交futureTask
+        mExecutor.submit(futureTask);
+        System.out.println("future result from futureTask : "
+                + futureTask.get());
+    }
+
+    // 效率底下的斐波那契数列, 耗时的操作
+    private static int fibc(int num) {
+        if (num == 0) {
+            return 0;
+        }
+        if (num == 1) {
+            return 1;
+        }
+        return fibc(num - 1) + fibc(num - 2);
+    }
+}
+
+3.线程池
+public class ExecutorDemo {
+
+    private static final int MAX = 10;
+
+    public static void main(String[] args) {
+        try {
+            // fixedThreadPool(3);
+//            newCachedThreadPool();
+             scheduledThreadPool();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    // 效率底下的斐波那契数列, 耗时的操作
+    private static int fibc(int num) {
+        if (num == 0) {
+            return 0;
+        }
+        if (num == 1) {
+            return 1;
+        }
+        return fibc(num - 1) + fibc(num - 2);
+    }
+
+
+    private static void fixedThreadPool(int size) throws CancellationException, ExecutionException,
+            InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(size);
+        for (int i = 0; i < MAX; i++) {
+            Future<Integer> task = executorService.submit(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    System.out.println("执行线程 : " + Thread.currentThread().getName());
+                    return fibc(20);
+                }
+            });
+            System.out.println("第 " + i + "次计算,结果 : " + task.get());
+        }
+    }
+
+//如果来个一个新的任务，并且没有空闲线程可用，此时必须马上创建一个线程来立即执行任务
+    private static void newCachedThreadPool() throws CancellationException,
+            ExecutionException, InterruptedException {
+
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        for (int i = 0; i < MAX; i++) {
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("执行线程 : " + Thread.currentThread().getName()
+                            + ", 结果 : " + fibc(20));
+                }
+            });
+
+        }
+
+    }
+
+    private static void scheduledThreadPool() throws CancellationException,
+            ExecutionException, InterruptedException {
+        // ScheduledExecutorService executorService =
+        // Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
+        // 参数2为第一次延迟的时间
+        executorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                System.out.println("Thread : " + Thread.currentThread().getName() + ", 定时计算 : ");
+                System.out.println("结果 : " + fibc(30));
+            }
+        }, 1, 2, TimeUnit.SECONDS);
+
+        // 参数2为第一次延迟的时间，参数３为执行周期
+        executorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                System.out.println("Thread : " + Thread.currentThread().getName() + ", 定时计算2 : ");
+                System.out.println("结果 : " + fibc(40));
+            }
+        }, 1, 2, TimeUnit.SECONDS);
+    }
+}
+
+4.信号量Semaphore
+//类似于食堂３个窗口，５个人要吃饭
+public class SemaphoreTest {
+
+    static int time = 0;
+
+    public static void main(String[] args) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(3);
+        final Semaphore semaphore = new Semaphore(3);
+        for (int i = 0; i < 5; i++) {
+            executorService.submit(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        semaphore.acquire();//获取许可，表示占用窗口
+                        System.out.println(" 剩余许可 : "
+                                + semaphore.availablePermits());
+                        Thread.sleep(2000);
+                        semaphore.release();//释放许可，表示离开了
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+    }
+}
+
+5.循环栅栏CyclicBarrier
+// 1或者多个线程相互等待
+public class CyclicBarrierTest {
+
+    private static int SIZE = 5;
+    private static CyclicBarrier mCyclicBarrier;
+
+    public static void main(String[] args) {
+
+        mCyclicBarrier = new CyclicBarrier(SIZE, new Runnable() {
+            public void run() {
+                System.out.println(" ---> 满足条件,执行特定操作。 参与者: " + mCyclicBarrier.getParties());
+            }
+        });
+
+        // 新建5个任务
+        for (int i = 0; i < SIZE; i++) {
+            new WorkerThread().start();
+        }
+    }
+
+    static class WorkerThread extends Thread {
+        public void run() {
+            try {
+                System.out.println(Thread.currentThread().getName() + " 等待 CyclicBarrier.");
+
+                // 将mCyclicBarrier的参与者数量加1
+                mCyclicBarrier.await();
+                // mCyclicBarrier的参与者数量等于5时，才继续往后执行
+                System.out.println(Thread.currentThread().getName() + " 继续执行.");
+            } catch (BrokenBarrierException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+6.闭锁　CountDownLatch
+// 1等多
+public class CountDownLatchTest {
+
+    private static int LATCH_SIZE = 5;
+
+    public static void main(String[] args) {
+
+        try {
+            CountDownLatch latch = new CountDownLatch(LATCH_SIZE);
+
+            // 新建5个任务
+            for (int i = 0; i < LATCH_SIZE; i++) {
+                new InnerThread(latch).start();
+            }
+
+            System.out.println("主线程等待.");
+            // "主线程"等待线程池中5个任务的完成
+            latch.await();
+            System.out.println("主线程继续执行");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static class InnerThread extends Thread {
+
+        CountDownLatch mLatch;
+
+        public InnerThread(CountDownLatch latch) {
+            mLatch = latch;
+        }
+
+        public void run() {
+            try {
+                Thread.sleep(1000);
+                System.out.println(Thread.currentThread().getName() + " 执行操作.");
+                // 将CountDownLatch的数值减1
+                mLatch.countDown();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+7/自定义AsyncTask
+public abstract class SimpleAsyncTask<Result> {
+    // HandlerThread内部封装了自己的Handler和Thead，有单独的Looper和消息队列
+    private static final HandlerThread HT = new HandlerThread(SimpleAsyncTask.class.getName(),
+            android.os.Process.THREAD_PRIORITY_BACKGROUND);
+    static {
+        HT.start();
+    }
+
+    // 获取调用execute的线程的Looper, 构建Handler
+    final Handler mUIHandler = new Handler(Looper.getMainLooper());
+    // 与异步线程队列关联的Handler
+    final Handler mAsyncHandler = new Handler(HT.getLooper());
+
+    /**
+     * @功能描述 : onPreExecute任务执行之前的初始化操作等
+     */
+    protected void onPreExecute() {
+
+    }
+
+    /**
+     * doInBackground后台执行任务
+     *
+     * @return 返回执行结果
+     */
+    protected abstract Result doInBackground();
+
+    /**
+     * doInBackground返回结果传递给执行在UI线程的onPostExecute
+     *
+     * @param result
+     */
+    protected void onPostExecute(Result result) {
+    }
+
+    /**
+     * execute方法，执行任务，调用doInBackground，并且将结果投递给UI线程， 使用户可以在onPostExecute处理结果
+     *
+     * @return
+     */
+    public final SimpleAsyncTask<Result> execute() {
+        onPreExecute();
+        // 将任务投递到HandlerThread线程中执行
+        mAsyncHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                // 后台执行任务,完成之后向UI线程post数据，用以更新UI等操作
+                postResult(doInBackground());
+            }
+        });
+
+        return this;
+    }
+
+    private void postResult(final Result result) {
+        mUIHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                onPostExecute(result);
+            }
+        });
+    }
+
+}
+
+
+
+
+
+
+
+

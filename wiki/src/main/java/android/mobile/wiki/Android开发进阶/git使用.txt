@@ -1,0 +1,123 @@
+
+1.配置个人的用户名称和电子邮件地址
+git config --global user.name "your name"
+git config --global user.email yourname@example.com
+
+备注：
+/etc/gitconfig:系统中所有用户都普遍配置适用的配置，若使用git config 时用--system选项，读写的就是这个文件
+~/.gitconfig:用户目录下的配置文件只适用与该用户，若适用git config 时用--global选项，读写的就是这个文件
+当前项目下的.git/config：该配置仅仅针对当前项目有效，每一个级别的配置都会覆盖上层的形同配置，所以.git/config里的配置会覆盖/etc/gitconfig中的同名变量
+
+2.配置默认使用的文本编辑器
+git config --global core.editor emacs
+
+3.在解决合并冲突时使用哪种差异化分析工具，比如使用vimdiff
+git config --global merge.tool vimdiff
+
+
+4.检查已有的配置信息
+git config --list
+
+5.配置高亮显示
+git config --global color.status auto #查看状态时高亮显示
+git config --global color.branch auto #分之名高亮
+git config --global color.ui auto #自动高亮
+
+6.命令的别名配置
+git config --global alias.新名字　原始命令
+eg:git config --global alias.co checkout
+
+7.版本控制
+7.1 第一步
+git init：在你的项目根目录执行此命令
+7.2查看状态
+git status:
+7.3 添加到追踪列表中
+git add
+eg:
+git add SayHello.java #添加SayHello.java这个文件
+git add .             #添加当前目录想的所有文件
+
+git rm --cached <file>:假如误操作将不需要追踪的文件进行了add操作，用此法移除，这个命令不会将你的文件从本地目录删除，而只是从你的git追踪列表中删除，这样在提交中就不会包含被移除的文件
+
+7.4 提交
+git commit
+eg:
+git commit -m "这里写你的提交说明，一般是简短的信息"
+git commit #会跳转到编辑器
+
+7.5 查看提交历史
+git log
+
+7.6 下载程序
+git clone
+
+7.7 不同分之
+git branch
+eg:
+
+git branch 分知名
+
+切换到新的分支：
+步骤一：git checkout -b master -t miui/alpha
+步骤二：repo sync .
+步骤三：git branch -d xuxinming(上一个分支名)
+
+7.8 检出一个分之
+git checkout  分知名
+
+eg:
+删除分之：
+git checkout master #切回master分之
+git branch -d net　　#删除net分之
+
+回滚到某个修改之前的状态
+git checkout --文件名
+
+7.9 合并分之
+git merge
+
+7.9.1 无冲突下
+git checkout master
+git merge net
+
+7.9.2 有冲突
+git checkout master
+git merge net
+
+其他研发人员的master分之代码
+<<<<<<<<<<<<<<<<<<<<HEAD
+
+=======================
+
+自己的代码
+================================
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>net
+
+解决：删掉冲突的代码,然后 重新 git add 和commit 即可
+
+7.10为版本打一个标签
+git tag
+
+备注：建议大家为每一个正式发布的版本都创建一个标签，这样便于后续的版本检索和维护，通常一个标签就是一个正式版本
+git tag:列出当前项目的标签
+git tag -a v1.0 -m "这里写相关的信息" #新建一个标签
+
+git tag -d 标签名　　#删除标签tag
+git show 标签名　　　#查看该分之具体信息
+
+7.11 帮助文档
+git help
+
+
+
+
+
+
+
+
+
+
+

@@ -54,8 +54,83 @@ anim.setOneShot(false);
 mImageView.setBackgroundDrawable(anim);
 anim.start();
 
+2.补间动画
+
+3.属性动画
+
+value_animator.xml:
+<animator xmlns:android="http://schemas.android.com/apk/res/android"
+    android:valueFrom="0.0"
+    android:valueTo="1.0"
+    android:valueType="floatType" />
 
 
+ private void startValueAnimation() {
+        // ValueAnimator animator = ValueAnimator.ofFloat(0.0f, 1.0f);
+        ValueAnimator animator = (ValueAnimator) AnimatorInflater.loadAnimator(
+                getApplicationContext(),
+                R.anim.value_animator);
+        animator.setDuration(1000);
+        animator.addUpdateListener(mAnimationListener);
+        animator.start();
+    }
 
+    ValueAnimator.AnimatorUpdateListener mAnimationListener = new ValueAnimator.AnimatorUpdateListener() {
 
+        @Override
+        public void onAnimationUpdate(ValueAnimator animation) {
+            float newValue = (Float) animation.getAnimatedValue();
+            Log.e("", "### 新的属性值 : " + newValue);
+        }
 
+    };
+
+    private void startObjectAnim() {
+        ObjectAnimator animator = ObjectAnimator.ofFloat(mImageView, "rotation", 0.0f, 180.0f);
+        animator.setDuration(2000);
+        animator.start();
+    }
+
+    private void startAnimatorSet() {
+        ObjectAnimator rotationAnimator = ObjectAnimator.ofFloat(mImageView, "rotation", 0.0f,
+                180.0f);
+
+        ObjectAnimator translationXAnimator = ObjectAnimator.ofFloat(mImageView, "translationX",
+                mImageView.getLeft(), 200);
+
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.setDuration(2000);
+        // animatorSet.playTogether(animator, translationXAnimator);
+        animatorSet.play(rotationAnimator).after(translationXAnimator);
+        animatorSet.start();
+    }
+
+    private void useCustomEvaluator() {
+        ObjectAnimator animator = ObjectAnimator.ofObject(mColorImageView, "x",
+                new TranslateXEvaluator(), 0, 200);
+        animator.setInterpolator(new CustomInterpolator());
+        animator.setDuration(500);
+        animator.start();
+    }
+}
+
+public class CustomInterpolator implements TimeInterpolator {
+
+    @Override
+    public float getInterpolation(float input) {
+        return input * input;
+    }
+
+}
+
+public class TranslateXEvaluator implements TypeEvaluator<Integer> {
+
+    @Override
+    public Integer evaluate(float fraction, Integer startValue, Integer endValue) {
+        int newValue = startValue + (int) (fraction * (endValue - startValue));
+        Log.d("", "### fraction = " + fraction + ", start = " + startValue + ", end = " + endValue
+                + ", new Value = " + newValue);
+        return newValue;
+    }
+
+}

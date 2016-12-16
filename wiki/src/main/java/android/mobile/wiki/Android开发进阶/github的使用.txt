@@ -1,0 +1,76 @@
+1.SSH Key配置
+１.1本地生成配置
+ssh-keygen -t rsa -b 4096 -C "youremail@example.com"
+此时会询问你将SSH Key的相关文件放到哪里，　默认路径为:/Users/你的用户名/.ssh目录，直接回车即可
+此时又会一次输出一个如下提，这两个提示要求你输入密码的提示，两次都直接回车即可，相当于没有密码
+然后在目录下生成两个文件id_isa和id_rsa.pub，这些文件存储了你制定用户的SSH Key，通过这个Key，你就可以直接访问GitHub上的项目不需要输入任何密码
+
+1.2绑定到github
+将id_rsa.pub中所有内容复制粘贴到github，Settings/SSH Keys/add SSH Key中，最后点击add key即可
+
+备注；测试　ssh -T git @github.com测试是否添加成功
+
+2.项目托管
+本地已经创建了好了git-project，并且配置好了SSH Key，然后去托管
+2.1在github上创建一个项目然后得到这个项目的地址
++ -> New repository ->设置项目信息　->Create repository
+2.2 本地项目与github项目关联
+git remote add origin git@github.com:bboyfeiyu/git-project.git
+通过这个命令我们向本地仓库添加了一个名为origin ,地址git@github.com:bboyfeiyu/git-project.git的远程仓库
+
+git remote -v:查看该项目的远程仓库地址
+
+
+3.将项目推送到远程仓库
+git push resp br #地三个参数为远程仓库名，第四个参数为分知名或tag名
+eg:git push origin master:master # 将本地的master分之提交到远程仓库origin的master分之，master:master，第一个master代表本地的master分之
+，第二个master是远程master分之，如果本地分之和远程分之名称一致，可以简化，git push origin master
+
+git push origin net:master #将本地net分之推送到远程的master
+如果需要删除远程仓库的某个分之：git push origin :net #删除 origin远程仓库的net分之
+
+4.更新最新代码  git pull
+
+git pull origin master
+
+5.忽略文件 git gnore
+开发过程中可能不需要将一些问价提交到远程仓库中，在.gitignore模板上配置，就不会追踪了
+
+6.多人协作
+
+6.1 fork一份git-project项目到自己的名下
+6.2 git clone git@github.com:chaossss/git-project.git
+
+git add .
+git commit -m "test"
+
+git push origin master
+
+6.3从主仓库更新最新代码
+git remote add simple git@github.com:bboyfeiyu/git-project.git
+
+git pull simple master
+
+解决冲突，重新提交代码
+
+派生项目主页 -> 上下箭头的绿色按钮 ->进入创建 pull request界面，　左边是主仓库，右边是派生项目仓库->Create pull request
+主仓库：收到pull request请求 ->点击进入pull request->merge pull request
+
+
+备注：总结一下流程
+(1)fork主仓库得到派生项目
+(2)通过git clone 或者git pull将派生项目的ｄｉａｍａｎｔｅ拉取到本地
+(3)本地修改代码实现功能
+(4)通过git add 与git commit 提交代码到本地
+(5)通过git pull 命令从主仓库对应的分之更新代码，有冲突解决冲突
+(6)将本地代码提交到派生项目对应的分之中
+(7)向主仓库发送pull request请求
+(8)主仓库管理员合并pull request
+(9)完成一轮协作
+
+
+
+
+
+
+
