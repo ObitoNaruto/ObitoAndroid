@@ -1,0 +1,501 @@
+1.坐标系
+1.1 Android坐标系
+定义：将屏幕最左上角的顶点作为android坐标系的原点,从这个点向右是X轴正方向，从这个点向下是Y轴正方向
+
+getLocationOnScreen(int[] locaions);//获取Android坐标系中点的位置，即该试图左上角在Android坐标系中的坐标
+
+触控事件中，getRawX()和getRawY()方法所获得的坐标同样是Android坐标系的坐标
+
+1.2 试图坐标系
+子视图在父试图中的位置关系
+
+getX()和getY()就是视图坐标系中的坐标
+
+
+2.触控事件
+
+2.1　View提供的获取坐标方法
+getTop():View自身的顶边到其父布局顶边的距离
+getLeft():View自身的左边到其父布局左边的距离
+getRight():View自身的右边到其父布局左边的距离
+getBottom():View自身的底边到其父布局顶边的距离
+
+2.2 MotionEvent提供的方法
+
+getX():点击事件距离控件左边的距离，即视图坐标
+getY():点击事件距离控件顶边的距离，即视图坐标
+getRawX():点击事件距离整个屏幕左边的距离，即绝对坐标
+getRawY():点击事件距离整个屏幕顶边的距离，即绝对坐标
+
+3.实现滑动的七种方法
+
+3.1　layout方法
+public class DragView1 extends View {
+
+    private int lastX;
+    private int lastY;
+
+    public DragView1(Context context) {
+        super(context);
+        ininView();
+    }
+
+    public DragView1(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        ininView();
+    }
+
+    public DragView1(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        ininView();
+    }
+
+    private void ininView() {
+        // 给View设置背景颜色，便于观察
+        setBackgroundColor(Color.BLUE);
+    }
+
+    // 视图坐标方式
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        //每次回调的时候获取一下触摸点的坐标
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                // 记录触摸点坐标
+                lastX = x;
+                lastY = y;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // 计算偏移量
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                // 在当前left、top、right、bottom的基础上加上偏移量
+                layout(getLeft() + offsetX,
+                        getTop() + offsetY,
+                        getRight() + offsetX,
+                        getBottom() + offsetY);
+//                        offsetLeftAndRight(offsetX);
+//                        offsetTopAndBottom(offsetY);
+                break;
+        }
+        return true;
+    }
+}
+
+3.2
+public class DragView2 extends View {
+
+    private int lastX;
+    private int lastY;
+
+    public DragView2(Context context) {
+        super(context);
+        ininView();
+    }
+
+    public DragView2(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        ininView();
+    }
+
+    public DragView2(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        ininView();
+    }
+
+    private void ininView() {
+        setBackgroundColor(Color.BLUE);
+    }
+
+    // 绝对坐标方式
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int rawX = (int) (event.getRawX());
+        int rawY = (int) (event.getRawY());
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                // 记录触摸点坐标
+                lastX = rawX;
+                lastY = rawY;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // 计算偏移量
+                int offsetX = rawX - lastX;
+                int offsetY = rawY - lastY;
+                // 在当前left、top、right、bottom的基础上加上偏移量
+                layout(getLeft() + offsetX,
+                        getTop() + offsetY,
+                        getRight() + offsetX,
+                        getBottom() + offsetY);
+                // 重新设置初始坐标
+                lastX = rawX;
+                lastY = rawY;
+                break;
+        }
+        return true;
+    }
+}
+
+3.3
+public class DragView3 extends View {
+
+    private int lastX;
+    private int lastY;
+
+    public DragView3(Context context) {
+        super(context);
+        ininView();
+    }
+
+    public DragView3(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        ininView();
+    }
+
+    public DragView3(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        ininView();
+    }
+
+    private void ininView() {
+        setBackgroundColor(Color.BLUE);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                // 记录触摸点坐标
+                lastX = (int) event.getX();
+                lastY = (int) event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // 计算偏移量
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) getLayoutParams();
+//                LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) getLayoutParams();
+                layoutParams.leftMargin = getLeft() + offsetX;
+                layoutParams.topMargin = getTop() + offsetY;
+                setLayoutParams(layoutParams);
+                break;
+        }
+        return true;
+    }
+}
+
+3.4
+
+public class DragView4 extends View {
+
+    private int lastX;
+    private int lastY;
+
+    public DragView4(Context context) {
+        super(context);
+        ininView();
+    }
+
+    public DragView4(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        ininView();
+    }
+
+    public DragView4(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        ininView();
+    }
+
+    private void ininView() {
+        setBackgroundColor(Color.BLUE);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                lastX = (int) event.getX();
+                lastY = (int) event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                //注意：移动是瞬间完成的
+                //如果将scrollBy中参数dx 和dy设置为正数，那么content将向坐标轴负向移动;
+                //如果将scrollBy中参数的dx 和dy 设置为负数，那么content将向坐标轴正方向移动
+                ((View) getParent()).scrollBy(-offsetX, -offsetY);
+                break;
+        }
+        return true;
+    }
+}
+
+备注：
+scrollTo(x, y):表示移动到一个坐标点(x, y)
+scrollBy(x, y):表示移动的增量为dx, dy
+
+scrollTo和scrollBy移动的是View的content:即让view的内容移动，如果在ViewGroup中使用scrollTo和scrollBy，那么移动的将是所有子view
+,但如果在View中使用，那么移动的是View的内容，例如，TextView，content就是它的文本，ImageView，content就是它的drawable对象
+
+
+手机屏幕好比是一个中空的盖板，盖板下面是一个巨大的画布，也就是我们想要想要显示的视图
+
+如果将scrollBy中的参数dx 和dy设置为正数，那么content将向坐标轴负方向移动，
+如果将scrollBy中的参数dy和dy设置为负数，那么content将向坐标轴正方向移动
+
+
+3.5 平滑移动
+public class DragView5 extends View {
+
+    private int lastX;
+    private int lastY;
+    private Scroller mScroller;
+
+    public DragView5(Context context) {
+        super(context);
+        ininView(context);
+    }
+
+    public DragView5(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        ininView(context);
+    }
+
+    public DragView5(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        ininView(context);
+    }
+
+    private void ininView(Context context) {
+        setBackgroundColor(Color.BLUE);
+        //平滑滑动
+        // 1.初始化Scroller
+        mScroller = new Scroller(context);
+    }
+
+    /**
+     * 2.重写computeScroll方法，实现吗模拟滑动,此方法在draw方法中调用
+     */
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        // 判断Scroller是否执行完毕
+        if (mScroller.computeScrollOffset()) {//mScroller完成了整个滑动
+            //通过不断地瞬间移动一个小的距离来实现整体上的平滑移动效果
+            ((View) getParent()).scrollTo(
+                    mScroller.getCurrX(),//当前的滑动坐标
+                    mScroller.getCurrY());
+            // 通过重绘来不断调用computeScroll
+            invalidate();
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                lastX = (int) event.getX();
+                lastY = (int) event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                int offsetX = x - lastX;
+                int offsetY = y - lastY;
+                ((View) getParent()).scrollBy(-offsetX, -offsetY);
+                break;
+            case MotionEvent.ACTION_UP:
+                // 3.手指离开时，执行滑动过程，回到初始位置
+                View viewGroup = ((View) getParent());
+                mScroller.startScroll(
+                        viewGroup.getScrollX(),//开始位置
+                        viewGroup.getScrollY(),
+                        -viewGroup.getScrollX(),//偏移位置
+                        -viewGroup.getScrollY());
+                invalidate();
+                break;
+        }
+        return true;
+    }
+}
+
+备注：
+原理与scrollBy和scrollTo相似，getScrollX和getScrollY指的正负与scrollBy和scrollTo情况是一样的
+
+
+4.ViewDragHelper
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context=".MainActivity">
+
+    <com.imooc.dragviewtest.DragViewGroup
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/view">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/holo_blue_light">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Menu" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/holo_orange_dark">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Main" />
+        </FrameLayout>
+    </com.imooc.dragviewtest.DragViewGroup>
+</RelativeLayout>
+
+public class DragViewGroup extends FrameLayout {
+
+    private ViewDragHelper mViewDragHelper;
+    private View mMenuView, mMainView;
+    private int mWidth;
+
+    public DragViewGroup(Context context) {
+        super(context);
+        initView();
+    }
+
+    public DragViewGroup(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public DragViewGroup(Context context,
+                         AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView();
+    }
+
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        mMenuView = getChildAt(0);
+        mMainView = getChildAt(1);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        mWidth = mMenuView.getMeasuredWidth();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        return mViewDragHelper.shouldInterceptTouchEvent(ev);//重写拦截事件方法，将事件传递给ViewDragHelper进行处理
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        //将触摸事件传递给ViewDragHelper,此操作必不可少
+        mViewDragHelper.processTouchEvent(event);
+        return true;
+    }
+
+    private void initView() {
+        mViewDragHelper = ViewDragHelper.create(this, callback);//初始化
+    }
+
+    private ViewDragHelper.Callback callback =
+            new ViewDragHelper.Callback() {
+
+                // 何时开始检测触摸事件
+                @Override
+                public boolean tryCaptureView(View child, int pointerId) {
+                    //如果当前触摸的child是mMainView时开始检测
+                    return mMainView == child;
+                }
+
+                // 触摸到View后回调
+                @Override
+                public void onViewCaptured(View capturedChild,
+                                           int activePointerId) {
+                    super.onViewCaptured(capturedChild, activePointerId);
+                }
+
+                // 当拖拽状态改变，比如idle，dragging
+                @Override
+                public void onViewDragStateChanged(int state) {
+                    super.onViewDragStateChanged(state);
+                }
+
+                // 当位置改变的时候调用,常用与滑动时更改scale等
+                @Override
+                public void onViewPositionChanged(View changedView,
+                                                  int left, int top, int dx, int dy) {
+                    super.onViewPositionChanged(changedView, left, top, dx, dy);
+                }
+
+                // 处理垂直滑动，默认返回0，即不发生滑动
+                @Override
+                public int clampViewPositionVertical(View child, int top, int dy) {//top表示垂直方向上child移动的距离，而dy则表示比较前一次的增量
+                    return 0;
+                }
+
+                // 处理水平滑动
+                @Override
+                public int clampViewPositionHorizontal(View child, int left, int dx) {
+                    return left;
+                }
+
+                // 拖动结束后调用
+                @Override
+                public void onViewReleased(View releasedChild, float xvel, float yvel) {
+                    super.onViewReleased(releasedChild, xvel, yvel);
+                    //手指抬起后缓慢移动到指定位置
+                    if (mMainView.getLeft() < 500) {
+                        //关闭菜单
+                        //相当于Scroller的startScroll方法
+                        mViewDragHelper.smoothSlideViewTo(mMainView, 0, 0);
+                        ViewCompat.postInvalidateOnAnimation(DragViewGroup.this);
+                    } else {
+                        //打开菜单
+                        mViewDragHelper.smoothSlideViewTo(mMainView, 300, 0);
+                        ViewCompat.postInvalidateOnAnimation(DragViewGroup.this);
+                    }
+                }
+            };
+
+    @Override
+    public void computeScroll() {
+        if (mViewDragHelper.continueSettling(true)) {
+            ViewCompat.postInvalidateOnAnimation(this);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
