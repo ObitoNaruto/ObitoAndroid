@@ -1,0 +1,1046 @@
+1.基础
+屏幕参数：
+屏幕大小：屏幕对角线的长度，通常用寸来度量
+分辨率：手机屏幕的像素点个数
+PPI：每英寸像素,对角线的像素点数除以屏幕的大小得到的
+
+2.绘制仪表盘
+public class Clock extends View {
+
+    private int mHeight, mWidth;
+
+    public Clock(Context context) {
+        super(context);
+    }
+
+    public Clock(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public Clock(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        // 获取宽高参数
+        mWidth = getMeasuredWidth();
+        mHeight = getMeasuredHeight();
+        // 画外圆
+        Paint paintCircle = new Paint();
+        paintCircle.setStyle(Paint.Style.STROKE);
+        paintCircle.setAntiAlias(true);
+        paintCircle.setStrokeWidth(5);
+        //圆心在屏幕中心，半径为屏幕一半
+        canvas.drawCircle(mWidth / 2,
+                mHeight / 2, mWidth / 2, paintCircle);
+        // 画刻度
+        Paint painDegree = new Paint();
+        paintCircle.setStrokeWidth(3);
+        for (int i = 0; i < 24; i++) {
+            // 区分整点与非整点
+            if (i == 0 || i == 6 || i == 12 || i == 18) {
+                painDegree.setStrokeWidth(5);
+                painDegree.setTextSize(30);
+                canvas.drawLine(mWidth / 2, mHeight / 2 - mWidth / 2,
+                        mWidth / 2, mHeight / 2 - mWidth / 2 + 60,
+                        painDegree);
+                String degree = String.valueOf(i);
+                canvas.drawText(degree,
+                        mWidth / 2 - painDegree.measureText(degree) / 2,
+                        mHeight / 2 - mWidth / 2 + 90,
+                        painDegree);
+            } else {
+                painDegree.setStrokeWidth(3);
+                painDegree.setTextSize(15);
+                canvas.drawLine(mWidth / 2, mHeight / 2 - mWidth / 2,
+                        mWidth / 2, mHeight / 2 - mWidth / 2 + 30,
+                        painDegree);
+                String degree = String.valueOf(i);
+                canvas.drawText(degree,
+                        mWidth / 2 - painDegree.measureText(degree) / 2,
+                        mHeight / 2 - mWidth / 2 + 60,
+                        painDegree);
+            }
+            // 通过旋转画布简化坐标运算
+            canvas.rotate(15, mWidth / 2, mHeight / 2);
+        }
+        // 画圆心
+        Paint paintPointer = new Paint();
+        paintPointer.setStrokeWidth(30);
+        canvas.drawPoint(mWidth / 2, mHeight / 2, paintPointer);
+        // 画指针
+        Paint paintHour = new Paint();
+        paintHour.setStrokeWidth(20);
+        Paint paintMinute = new Paint();
+        paintMinute.setStrokeWidth(10);
+        canvas.save();
+        canvas.translate(mWidth / 2, mHeight / 2);
+        canvas.drawLine(0, 0, 100, 100, paintHour);
+        canvas.drawLine(0, 0, 100, 200, paintMinute);
+        canvas.restore();
+    }
+}
+
+3.Layer图层
+public class MainActivity extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(new MyLayer(this));
+    }
+
+    public class MyLayer extends View {
+
+        private Paint mPaint;
+        private static final int LAYER_FLAGS =
+                        Canvas.MATRIX_SAVE_FLAG |
+                        Canvas.CLIP_SAVE_FLAG |
+                        Canvas.HAS_ALPHA_LAYER_SAVE_FLAG |
+                        Canvas.FULL_COLOR_LAYER_SAVE_FLAG |
+                        Canvas.CLIP_TO_LAYER_SAVE_FLAG;
+
+        public MyLayer(Context context) {
+            super(context);
+            mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            canvas.drawColor(Color.WHITE);
+            mPaint.setColor(Color.BLUE);
+            canvas.drawCircle(150, 150, 100, mPaint);
+
+            canvas.saveLayerAlpha(0, 0, 400, 400, 0, LAYER_FLAGS);
+            mPaint.setColor(Color.RED);
+            canvas.drawCircle(200, 200, 100, mPaint);
+            canvas.restore();
+        }
+    }
+}
+
+备注：
+saveLayerAlpha将一个图层入栈，restore和restoreToCount将一个图层出栈
+
+4.色彩特效处理
+
+4.1
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <ImageView
+        android:id="@+id/imageview"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="24dp"
+        android:layout_marginTop="24dp" />
+
+    <SeekBar
+        android:id="@+id/seekbarHue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/imageview" />
+
+    <SeekBar
+        android:id="@+id/seekbarSaturation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/seekbarHue" />
+
+    <SeekBar
+        android:id="@+id/seekbatLum"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/seekbarSaturation" />
+
+</RelativeLayout>
+
+public class PrimaryColor extends Activity implements SeekBar.OnSeekBarChangeListener {
+
+    private static int MAX_VALUE = 255;
+    private static int MID_VALUE = 127;
+    private ImageView mImageView;
+    private SeekBar mSeekbarhue, mSeekbarSaturation, mSeekbarLum;
+    private float mHue, mStauration, mLum;
+    private Bitmap bitmap;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.primary_color);
+        bitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.test3);
+        mImageView = (ImageView) findViewById(R.id.imageview);
+        mSeekbarhue = (SeekBar) findViewById(R.id.seekbarHue);
+        mSeekbarSaturation = (SeekBar) findViewById(R.id.seekbarSaturation);
+        mSeekbarLum = (SeekBar) findViewById(R.id.seekbatLum);
+        mSeekbarhue.setOnSeekBarChangeListener(this);
+        mSeekbarSaturation.setOnSeekBarChangeListener(this);
+        mSeekbarLum.setOnSeekBarChangeListener(this);
+        mSeekbarhue.setMax(MAX_VALUE);
+        mSeekbarSaturation.setMax(MAX_VALUE);
+        mSeekbarLum.setMax(MAX_VALUE);
+        mSeekbarhue.setProgress(MID_VALUE);
+        mSeekbarSaturation.setProgress(MID_VALUE);
+        mSeekbarLum.setProgress(MID_VALUE);
+        mImageView.setImageBitmap(bitmap);
+    }
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar,
+                                  int progress, boolean fromUser) {
+        switch (seekBar.getId()) {
+            case R.id.seekbarHue:
+                mHue = (progress - MID_VALUE) * 1.0F / MID_VALUE * 180;
+                break;
+            case R.id.seekbarSaturation:
+                mStauration = progress * 1.0F / MID_VALUE;
+                break;
+            case R.id.seekbatLum:
+                mLum = progress * 1.0F / MID_VALUE;
+                break;
+        }
+        mImageView.setImageBitmap(ImageHelper.handleImageEffect(
+                bitmap, mHue, mStauration, mLum));
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+    }
+}
+
+
+public static Bitmap handleImageEffect(Bitmap bm,
+                                           float hue,
+                                           float saturation,
+                                           float lum) {
+        Bitmap bmp = Bitmap.createBitmap(
+                bm.getWidth(), bm.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        Paint paint = new Paint();
+
+        //设置颜色的色调，第一个参数，系统分别使用0,1,2来代表red,green,blue三种颜色的处理，第二个参数就是需要处理的值
+        ColorMatrix hueMatrix = new ColorMatrix();
+        hueMatrix.setRotate(0, hue);
+        hueMatrix.setRotate(1, hue);
+        hueMatrix.setRotate(2, hue);
+
+        //饱和度，当饱和度为0时，图像就变成灰度图像了
+        ColorMatrix saturationMatrix = new ColorMatrix();
+        saturationMatrix.setSaturation(saturation);
+
+        //亮度
+        ColorMatrix lumMatrix = new ColorMatrix();
+        lumMatrix.setScale(lum, lum, lum, 1);
+
+        //用postConcat将矩阵的作用效果混合
+        ColorMatrix imageMatrix = new ColorMatrix();
+        imageMatrix.postConcat(hueMatrix);
+        imageMatrix.postConcat(saturationMatrix);
+        imageMatrix.postConcat(lumMatrix);
+
+        paint.setColorFilter(new ColorMatrixColorFilter(imageMatrix));
+        canvas.drawBitmap(bm, 0, 0, paint);
+        return bmp;
+    }
+
+备注：
+android系统不允许直接修改原图
+
+4.2 常用图像像素点处理效果
+
+public class ImageHelper {
+
+    public static Bitmap handleImageEffect(Bitmap bm,
+                                           float hue,
+                                           float saturation,
+                                           float lum) {
+        Bitmap bmp = Bitmap.createBitmap(
+                bm.getWidth(), bm.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        Paint paint = new Paint();
+
+        ColorMatrix hueMatrix = new ColorMatrix();
+        hueMatrix.setRotate(0, hue);
+        hueMatrix.setRotate(1, hue);
+        hueMatrix.setRotate(2, hue);
+
+        ColorMatrix saturationMatrix = new ColorMatrix();
+        saturationMatrix.setSaturation(saturation);
+
+        ColorMatrix lumMatrix = new ColorMatrix();
+        lumMatrix.setScale(lum, lum, lum, 1);
+
+        ColorMatrix imageMatrix = new ColorMatrix();
+        imageMatrix.postConcat(hueMatrix);
+        imageMatrix.postConcat(saturationMatrix);
+        imageMatrix.postConcat(lumMatrix);
+
+        paint.setColorFilter(new ColorMatrixColorFilter(imageMatrix));
+        canvas.drawBitmap(bm, 0, 0, paint);
+        return bmp;
+    }
+    //底片效果
+    public static Bitmap handleImageNegative(Bitmap bm) {
+        int width = bm.getWidth();
+        int height = bm.getHeight();
+        int color;
+        int r, g, b, a;
+
+        Bitmap bmp = Bitmap.createBitmap(width, height
+                , Bitmap.Config.ARGB_8888);
+
+        int[] oldPx = new int[width * height];
+        int[] newPx = new int[width * height];
+        bm.getPixels(oldPx, 0, width, 0, 0, width, height);
+
+        for (int i = 0; i < width * height; i++) {
+            color = oldPx[i];
+            r = Color.red(color);
+            g = Color.green(color);
+            b = Color.blue(color);
+            a = Color.alpha(color);
+
+            r = 255 - r;
+            g = 255 - g;
+            b = 255 - b;
+
+            if (r > 255) {
+                r = 255;
+            } else if (r < 0) {
+                r = 0;
+            }
+            if (g > 255) {
+                g = 255;
+            } else if (g < 0) {
+                g = 0;
+            }
+            if (b > 255) {
+                b = 255;
+            } else if (b < 0) {
+                b = 0;
+            }
+            newPx[i] = Color.argb(a, r, g, b);
+        }
+        bmp.setPixels(newPx, 0, width, 0, 0, width, height);
+        return bmp;
+    }
+     //老照片效果
+    public static Bitmap handleImagePixelsOldPhoto(Bitmap bm) {
+        Bitmap bmp = Bitmap.createBitmap(bm.getWidth(), bm.getHeight(),
+                Bitmap.Config.ARGB_8888);
+        int width = bm.getWidth();
+        int height = bm.getHeight();
+        int color = 0;
+        int r, g, b, a, r1, g1, b1;
+
+        int[] oldPx = new int[width * height];
+        int[] newPx = new int[width * height];
+
+        bm.getPixels(oldPx, 0, bm.getWidth(), 0, 0, width, height);
+        for (int i = 0; i < width * height; i++) {
+            color = oldPx[i];
+            a = Color.alpha(color);
+            r = Color.red(color);
+            g = Color.green(color);
+            b = Color.blue(color);
+
+            r1 = (int) (0.393 * r + 0.769 * g + 0.189 * b);
+            g1 = (int) (0.349 * r + 0.686 * g + 0.168 * b);
+            b1 = (int) (0.272 * r + 0.534 * g + 0.131 * b);
+
+            if (r1 > 255) {
+                r1 = 255;
+            }
+            if (g1 > 255) {
+                g1 = 255;
+            }
+            if (b1 > 255) {
+                b1 = 255;
+            }
+
+            newPx[i] = Color.argb(a, r1, g1, b1);
+        }
+        bmp.setPixels(newPx, 0, width, 0, 0, width, height);
+        return bmp;
+    }
+    //浮雕效果
+    public static Bitmap handleImagePixelsRelief(Bitmap bm) {
+        Bitmap bmp = Bitmap.createBitmap(bm.getWidth(), bm.getHeight(),
+                Bitmap.Config.ARGB_8888);
+        int width = bm.getWidth();
+        int height = bm.getHeight();
+        int color = 0, colorBefore = 0;
+        int a, r, g, b;
+        int r1, g1, b1;
+
+        int[] oldPx = new int[width * height];
+        int[] newPx = new int[width * height];
+
+        bm.getPixels(oldPx, 0, bm.getWidth(), 0, 0, width, height);
+        for (int i = 1; i < width * height; i++) {
+            colorBefore = oldPx[i - 1];
+            a = Color.alpha(colorBefore);
+            r = Color.red(colorBefore);
+            g = Color.green(colorBefore);
+            b = Color.blue(colorBefore);
+
+            color = oldPx[i];
+            r1 = Color.red(color);
+            g1 = Color.green(color);
+            b1 = Color.blue(color);
+
+            r = (r - r1 + 127);
+            g = (g - g1 + 127);
+            b = (b - b1 + 127);
+            if (r > 255) {
+                r = 255;
+            }
+            if (g > 255) {
+                g = 255;
+            }
+            if (b > 255) {
+                b = 255;
+            }
+            newPx[i] = Color.argb(a, r, g, b);
+        }
+        bmp.setPixels(newPx, 0, width, 0, 0, width, height);
+        return bmp;
+    }
+}
+
+5.静态的扭曲的图像
+
+public class FlagBitmapMeshView extends View {
+
+    private final int WIDTH = 200;
+    private final int HEIGHT = 200;
+    private int COUNT = (WIDTH + 1) * (HEIGHT + 1);
+    private float[] verts = new float[COUNT * 2];
+    private float[] orig = new float[COUNT * 2];
+    private Bitmap bitmap;
+    private float A;
+    private float k = 1;
+
+    public FlagBitmapMeshView(Context context) {
+        super(context);
+        initView(context);
+    }
+
+    public FlagBitmapMeshView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView(context);
+    }
+
+    public FlagBitmapMeshView(Context context, AttributeSet attrs,
+                              int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView(context);
+    }
+
+    private void initView(Context context) {
+        setFocusable(true);
+        bitmap = BitmapFactory.decodeResource(context.getResources(),
+                R.drawable.test);
+        float bitmapWidth = bitmap.getWidth();
+        float bitmapHeight = bitmap.getHeight();
+        int index = 0;
+        for (int y = 0; y <= HEIGHT; y++) {
+            float fy = bitmapHeight * y / HEIGHT;
+            for (int x = 0; x <= WIDTH; x++) {
+                float fx = bitmapWidth * x / WIDTH;
+                orig[index * 2 + 0] = verts[index * 2 + 0] = fx;
+                orig[index * 2 + 1] = verts[index * 2 + 1] = fy + 100;
+                index += 1;
+            }
+        }
+        A = 50;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        flagWave();
+        k += 0.1F;
+        canvas.drawBitmapMesh(bitmap, WIDTH, HEIGHT,
+                verts, 0, null, 0, null);
+        invalidate();
+    }
+
+    private void flagWave() {
+        for (int j = 0; j <= HEIGHT; j++) {
+            for (int i = 0; i <= WIDTH; i++) {
+                verts[(j * (WIDTH + 1) + i) * 2 + 0] += 0;
+                float offsetY =
+                        (float) Math.sin((float) i / WIDTH * 2 * Math.PI +
+                                Math.PI * k);
+                verts[(j * (WIDTH + 1) + i) * 2 + 1] =
+                        orig[(j * WIDTH + i) * 2 + 1] + offsetY * A;
+            }
+        }
+    }
+}
+
+?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <view
+        android:id="@+id/view3"
+        class="com.imooc.myapplication.FlagBitmapMeshView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+</LinearLayout>
+
+6.圆角图片
+
+public class RoundRectXfermodeView extends View {
+
+    private Bitmap mBitmap;
+    private Bitmap mOut;
+    private Paint mPaint;
+
+    public RoundRectXfermodeView(Context context) {
+        super(context);
+        initView();
+    }
+
+    public RoundRectXfermodeView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public RoundRectXfermodeView(Context context, AttributeSet attrs,
+                                 int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView();
+    }
+    //先用普通画笔画一个mask遮罩层，再用带PorterDuffXfermode的画笔将图像画在遮罩层上
+    public void initView() {
+        mBitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.test1);
+        mOut = Bitmap.createBitmap(mBitmap.getWidth(),
+                mBitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(mOut);
+        mPaint = new Paint();
+        mPaint.setAntiAlias(true);
+        canvas.drawRoundRect(0, 0,
+                mBitmap.getWidth(),
+                mBitmap.getHeight(), 80, 80, mPaint);
+        mPaint.setXfermode(new PorterDuffXfermode(
+                PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(mBitmap, 0, 0, mPaint);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        canvas.drawBitmap(mOut, 0, 0, null);
+    }
+}
+
+7.刮刮卡
+public class XfermodeView extends View {
+
+    private Bitmap mBgBitmap, mFgBitmap;
+    private Paint mPaint;
+    private Canvas mCanvas;
+    private Path mPath;
+
+    public XfermodeView(Context context) {
+        super(context);
+        init();
+    }
+
+    public XfermodeView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init();
+    }
+
+    public XfermodeView(Context context, AttributeSet attrs,
+                        int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+
+    private void init() {
+        mPaint = new Paint();
+        /将画笔的透明度设置为0才能显示出擦除的效果
+        mPaint.setAlpha(0);
+        //使用DST_IN模式将路径绘制到前面覆盖的图层上面
+        mPaint.setXfermode(
+                new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeJoin(Paint.Join.ROUND);
+        mPaint.setStrokeWidth(50);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPath = new Path();
+        mBgBitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.test);
+        mFgBitmap = Bitmap.createBitmap(mBgBitmap.getWidth(),
+                mBgBitmap.getHeight(), Bitmap.Config.ARGB_8888);
+        mCanvas = new Canvas(mFgBitmap);
+        mCanvas.drawColor(Color.GRAY);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mPath.reset();
+                mPath.moveTo(event.getX(), event.getY());
+                break;
+            case MotionEvent.ACTION_MOVE:
+                mPath.lineTo(event.getX(), event.getY());
+                break;
+        }
+        mCanvas.drawPath(mPath, mPaint);
+        invalidate();
+        return true;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        canvas.drawBitmap(mBgBitmap, 0, 0, null);
+        canvas.drawBitmap(mFgBitmap, 0, 0, null);
+    }
+}
+
+8.Shader
+8.1矩形图片变圆形
+public class RoundRectShaderView extends View {
+
+    private BitmapShader mBitmapShader;
+    private Bitmap mBitmap;
+    private Paint mPaint;
+
+    public RoundRectShaderView(Context context) {
+        super(context);
+    }
+
+    public RoundRectShaderView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public RoundRectShaderView(Context context, AttributeSet attrs,
+                               int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+//        mBitmap = BitmapFactory.decodeResource(getResources(),
+//                R.drawable.ic_launcher);
+//        mBitmapShader = new BitmapShader(mBitmap,
+//                Shader.TileMode.REPEAT, Shader.TileMode.REPEAT);
+        mBitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.test);
+        mBitmapShader = new BitmapShader(mBitmap,
+                Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        mPaint = new Paint();
+        mPaint.setShader(mBitmapShader);
+        canvas.drawCircle(500, 250, 200, mPaint);
+    }
+}
+
+
+备注：
+CLAMP拉伸：拉伸的是图片的最后一个像素，不断重复
+REPEAT重复：横向、纵向不断重复
+MIRROR镜像：横向不断翻转重复，纵向不断翻转重复
+
+8.2倒影效果
+
+public class ReflectView extends View {
+    private Bitmap mSrcBitmap, mRefBitmap;
+    private Paint mPaint;
+    private PorterDuffXfermode mXfermode;
+
+    public ReflectView(Context context) {
+        super(context);
+        initRes(context);
+    }
+
+    public ReflectView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initRes(context);
+    }
+
+    public ReflectView(Context context, AttributeSet attrs,
+                       int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initRes(context);
+    }
+
+    private void initRes(Context context) {
+        mSrcBitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.test);
+        Matrix matrix = new Matrix();
+        matrix.setScale(1F, -1F);
+        mRefBitmap = Bitmap.createBitmap(mSrcBitmap, 0, 0,
+                mSrcBitmap.getWidth(), mSrcBitmap.getHeight(), matrix, true);
+
+        mPaint = new Paint();
+        mPaint.setShader(new LinearGradient(0, mSrcBitmap.getHeight(), 0,
+                mSrcBitmap.getHeight() + mSrcBitmap.getHeight() / 4,
+                0XDD000000, 0X10000000, Shader.TileMode.CLAMP));
+        mXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        canvas.drawColor(Color.BLACK);
+        canvas.drawBitmap(mSrcBitmap, 0, 0, null);
+        canvas.drawBitmap(mRefBitmap, 0, mSrcBitmap.getHeight(), null);
+        mPaint.setXfermode(mXfermode);
+        // 绘制渐变效果矩形
+        canvas.drawRect(0, mSrcBitmap.getHeight(),
+                mRefBitmap.getWidth(), mSrcBitmap.getHeight() * 2, mPaint);
+        mPaint.setXfermode(null);
+    }
+}
+
+9.PathEffect
+
+public class PathEffectView extends View {
+
+    private Paint mPaint;
+    private Path mPath;
+    private PathEffect[] mEffects;
+
+    public PathEffectView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        mPaint = new Paint();
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeWidth(5);
+        mPaint.setColor(Color.DKGRAY);
+        mPath = new Path();
+        mPath.moveTo(0, 0);
+        for (int i = 0; i <= 30; i++) {
+            mPath.lineTo(i * 35, (float) (Math.random() * 100));
+        }
+        mEffects = new PathEffect[6];
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        mEffects[0] = null;
+        mEffects[1] = new CornerPathEffect(30);
+        mEffects[2] = new DiscretePathEffect(3.0F, 5.0F);
+        mEffects[3] = new DashPathEffect(new float[]{20, 10, 5, 10}, 0);
+        Path path = new Path();
+        path.addRect(0, 0, 8, 8, Path.Direction.CCW);
+        mEffects[4] = new PathDashPathEffect(path, 12, 0, PathDashPathEffect.Style.ROTATE);
+        mEffects[5] = new ComposePathEffect(mEffects[3], mEffects[1]);
+        for (int i = 0; i < mEffects.length; i++) {
+            mPaint.setPathEffect(mEffects[i]);
+            canvas.drawPath(mPath, mPaint);
+            canvas.translate(0, 200);
+        }
+    }
+}
+
+
+10.SurfaceView
+
+10.1模板代码
+public class SurfaceViewTemplate extends SurfaceView
+        implements SurfaceHolder.Callback, Runnable {
+
+    // SurfaceHolder
+    private SurfaceHolder mHolder;
+    // 用于绘图的Canvas
+    private Canvas mCanvas;
+    // 子线程标志位
+    private boolean mIsDrawing;
+
+    public SurfaceViewTemplate(Context context) {
+        super(context);
+        initView();
+    }
+
+    public SurfaceViewTemplate(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public SurfaceViewTemplate(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        initView();
+    }
+
+    private void initView() {
+        mHolder = getHolder();
+        mHolder.addCallback(this);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        this.setKeepScreenOn(true);
+        //mHolder.setFormat(PixelFormat.OPAQUE);
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        mIsDrawing = true;
+        new Thread(this).start();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder,
+                               int format, int width, int height) {
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        mIsDrawing = false;
+    }
+
+    @Override
+    public void run() {
+        while (mIsDrawing) {
+            draw();
+        }
+    }
+
+    private void draw() {
+        try {
+            mCanvas = mHolder.lockCanvas();
+            // draw sth
+        } catch (Exception e) {
+        } finally {
+            if (mCanvas != null)
+                mHolder.unlockCanvasAndPost(mCanvas);
+        }
+    }
+}
+
+
+10.1 正弦曲线
+
+public class SinView extends SurfaceView
+        implements SurfaceHolder.Callback, Runnable {
+
+    private SurfaceHolder mHolder;
+    private Canvas mCanvas;
+    private boolean mIsDrawing;
+    private int x = 0;
+    private int y = 0;
+    private Path mPath;
+    private Paint mPaint;
+
+    public SinView(Context context) {
+        super(context);
+        initView();
+    }
+
+    public SinView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public SinView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        initView();
+    }
+
+    private void initView() {
+        mHolder = getHolder();
+        mHolder.addCallback(this);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        this.setKeepScreenOn(true);
+        mPath = new Path();
+        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mPaint.setColor(Color.RED);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeWidth(10);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPaint.setStrokeJoin(Paint.Join.ROUND);
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        mIsDrawing = true;
+        mPath.moveTo(0, 400);
+        new Thread(this).start();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder,
+                               int format, int width, int height) {
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        mIsDrawing = false;
+    }
+
+    @Override
+    public void run() {
+        while (mIsDrawing) {
+            draw();
+            x += 1;
+            y = (int) (100*Math.sin(x * 2 * Math.PI / 180) + 400);
+            mPath.lineTo(x, y);
+        }
+    }
+
+    private void draw() {
+        try {
+            mCanvas = mHolder.lockCanvas();
+            // SurfaceView背景
+            mCanvas.drawColor(Color.WHITE);
+            mCanvas.drawPath(mPath, mPaint);
+        } catch (Exception e) {
+        } finally {
+            if (mCanvas != null)
+                mHolder.unlockCanvasAndPost(mCanvas);
+        }
+    }
+}
+
+
+10.2 绘图板
+
+public class SimpleDraw extends SurfaceView
+        implements SurfaceHolder.Callback, Runnable {
+
+    private SurfaceHolder mHolder;
+    /**
+     * »æÍ¼µÄCanvas
+     */
+    private Canvas mCanvas;
+    /**
+     * ×ÓÏß³Ì±êÖ¾Î»
+     */
+    private boolean mIsDrawing;
+    private Path mPath;
+    private Paint mPaint;
+
+    public SimpleDraw(Context context) {
+        super(context);
+        initView();
+    }
+
+    public SimpleDraw(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initView();
+    }
+
+    public SimpleDraw(Context context, AttributeSet attrs,
+                      int defStyle) {
+        super(context, attrs, defStyle);
+        initView();
+    }
+
+    private void initView() {
+        //³õÊ¼»¯SurfaceHolder¶ÔÏó£¬²¢×¢²áSurfaceHolder»Øµ÷·½·¨
+        mHolder = getHolder();
+        mHolder.addCallback(this);
+
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        this.setKeepScreenOn(true);
+        mPath = new Path();
+        mPaint = new Paint();
+        mPaint.setColor(Color.RED);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeWidth(40);
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        mIsDrawing = true;
+        //¿ªÆô×ÓÏß³Ì½øÐÐ»æÖÆ
+        new Thread(this).start();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder,
+                               int format, int width, int height) {
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        mIsDrawing = false;
+    }
+
+    @Override
+    public void run() {
+        long start = System.currentTimeMillis();
+        while (mIsDrawing) {
+            draw();
+        }
+        long end = System.currentTimeMillis();
+        //有时候绘制不用那么频繁，因此可以在子线程中，进行sleep操作，尽可能节省系统资源
+        // 50 - 100
+        if (end - start < 100) {
+            try {
+                Thread.sleep(100 - (end - start));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void draw() {
+        try {
+            //µ÷ÓÃÕâ¸ö·½·¨£¬¾Í¿ÉÒÔ»ñµÃµ±Ç°µÄCanvas»æÍ¼¶ÔÏó
+            mCanvas = mHolder.lockCanvas();
+            //ÇåÆÁ²Ù×÷
+            mCanvas.drawColor(Color.WHITE);
+            mCanvas.drawPath(mPath, mPaint);
+        } catch (Exception e) {
+        } finally {
+            if (mCanvas != null)
+                mHolder.unlockCanvasAndPost(mCanvas);
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mPath.moveTo(x, y);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                mPath.lineTo(x, y);
+                break;
+            case MotionEvent.ACTION_UP:
+                break;
+        }
+        return true;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
