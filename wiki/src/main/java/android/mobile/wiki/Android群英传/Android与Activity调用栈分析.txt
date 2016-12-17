@@ -1,0 +1,39 @@
+
+1.Activity启动与销毁
+
+onPause:释放系统资源，如Camera,sensor,receivers
+onResume():需要重新初始化在onPause中释放的资源
+
+
+2.任务栈
+
+关于singleTop和singleInstance这两种启动模式，如果在一个singleTop或者singleInstance的Activity A中通过startActivityForResult方法来启动
+另一个Activity B，那么系统将直接返回Activity.RESULT_CANCELED
+
+2.1 Intent Flag启动模式
+
+Intent.FLAG_ACTIVITY_NEW_TASK:一般用在service中启动activity的场景
+
+Intent.FLAG_ACTIVITY_SINGLE_TOP:等价于android:launchMode="singleTop"
+
+Intent.FLAG_ACTIVITY_CLEAR_TOP:等价于android:launchMode="singleTask"
+
+Intent.FLAG_ACTIVITY_NO_HISTORY:
+使用这种模式启动Activity，当该Activity启动其他Activity后，该Activity就消失了
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
