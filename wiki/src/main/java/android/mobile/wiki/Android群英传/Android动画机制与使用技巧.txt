@@ -1,0 +1,534 @@
+
+1.视图动画
+
+public class MainActivity extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+
+    public void btnAlpha(View view) {
+        AlphaAnimation aa = new AlphaAnimation(0, 1);
+        aa.setDuration(1000);
+        view.startAnimation(aa);
+    }
+
+    public void btnRotate(View view) {
+        //ÒÑ£¨100,100£©ÎªÖÐÐÄµã£¬´Ó0¶ÈÐý×ªµ½360¶È
+        RotateAnimation ra = new RotateAnimation(0, 360, 100, 100);
+        ra.setDuration(1000);
+        view.startAnimation(ra);
+    }
+
+    public void btnRotateSelf(View view) {
+        RotateAnimation ra = new RotateAnimation(0, 360,
+                RotateAnimation.RELATIVE_TO_SELF, 0.5F,
+                RotateAnimation.RELATIVE_TO_SELF, 0.5F);
+        ra.setDuration(1000);
+        view.startAnimation(ra);
+    }
+
+    public void btnTranslate(View view) {
+        //xÖá£º0µ½200£»yÖá£º0µ½300
+        TranslateAnimation ta = new TranslateAnimation(0, 200, 0, 300);
+        ta.setDuration(1000);
+        view.startAnimation(ta);
+    }
+
+    public void btnScale(View view) {
+        ScaleAnimation sa = new ScaleAnimation(0, 2, 0, 2);
+        sa.setDuration(1000);
+        view.startAnimation(sa);
+    }
+
+    public void btnScaleSelf(View view) {
+        ScaleAnimation sa = new ScaleAnimation(0, 1, 0, 1,
+                Animation.RELATIVE_TO_SELF, 0.5F,
+                Animation.RELATIVE_TO_SELF, 0.5F);
+        sa.setDuration(1000);
+        view.startAnimation(sa);
+    }
+
+    public void btnSet(View view) {
+        AnimationSet as = new AnimationSet(true);
+        as.setDuration(1000);
+
+        AlphaAnimation aa = new AlphaAnimation(0, 1);
+        aa.setDuration(1000);
+        as.addAnimation(aa);
+
+        TranslateAnimation ta = new TranslateAnimation(0, 100, 0, 200);
+        ta.setDuration(1000);
+        as.addAnimation(ta);
+
+        view.startAnimation(as);
+    }
+
+}
+
+2.属性动画
+
+下面是常用的直接使用的属性动画的属性值
+
+translationX和translationY：这两个属性作为一种增量来控制着view对象从它布局容器的左上角坐标偏移的位置
+
+rotation,rotationX和rotationY:这三个属性控制view对象围绕支点进行2D和3D旋转
+
+scaleX和scaleY：着两个属性控制着view对象围绕它的支点进行2D缩放
+
+pivotX和pivotY:着两个属性控制view对象的支点位置，围绕这个支点记性旋转和缩放变换处理，默认情况下，该支点的位置就是view对象的中心点
+
+x和y:描述了view对象在它的容器中的最终位置，它是最初的左上角坐标和translationX,translationY值的累积和
+
+
+
+
+
+alpha：表示View对象的alpha透明度，默认值是1（不透明），0代表完全透明
+2.1灵动菜单
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView_b"
+        android:src="@drawable/b"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView_c"
+        android:src="@drawable/c"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView_d"
+        android:src="@drawable/d"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView_e"
+        android:src="@drawable/e"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView_a"
+        android:src="@drawable/a"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+</RelativeLayout>
+
+public class PropertyTest extends Activity implements View.OnClickListener {
+
+    private int[] mRes = {R.id.imageView_a, R.id.imageView_b, R.id.imageView_c,
+            R.id.imageView_d, R.id.imageView_e};
+    private List<ImageView> mImageViews = new ArrayList<ImageView>();
+    private boolean mFlag = true;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.property);
+        for (int i = 0; i < mRes.length; i++) {
+            ImageView imageView = (ImageView) findViewById(mRes[i]);
+            imageView.setOnClickListener(this);
+            mImageViews.add(imageView);
+        }
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.imageView_a:
+                if (mFlag) {
+                    startAnim();
+                } else {
+                    closeAnim();
+                }
+                break;
+            default:
+                Toast.makeText(PropertyTest.this, "" + v.getId(),
+                        Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
+    private void closeAnim() {
+        ObjectAnimator animator0 = ObjectAnimator.ofFloat(mImageViews.get(0),
+                "alpha", 0.5F, 1F);
+        ObjectAnimator animator1 = ObjectAnimator.ofFloat(mImageViews.get(1),
+                "translationY", 200F, 0);
+        ObjectAnimator animator2 = ObjectAnimator.ofFloat(mImageViews.get(2),
+                "translationX", 200F, 0);
+        ObjectAnimator animator3 = ObjectAnimator.ofFloat(mImageViews.get(3),
+                "translationY", -200F, 0);
+        ObjectAnimator animator4 = ObjectAnimator.ofFloat(mImageViews.get(4),
+                "translationX", -200F, 0);
+        AnimatorSet set = new AnimatorSet();
+        set.setDuration(500);
+        set.setInterpolator(new BounceInterpolator());
+        set.playTogether(animator0, animator1, animator2, animator3, animator4);
+        set.start();
+        mFlag = true;
+    }
+     //展开
+    private void startAnim() {
+        ObjectAnimator animator0 = ObjectAnimator.ofFloat(
+                mImageViews.get(0),
+                "alpha",
+                1F,
+                0.5F);
+        ObjectAnimator animator1 = ObjectAnimator.ofFloat(
+                mImageViews.get(1),
+                "translationY",
+                200F);
+        ObjectAnimator animator2 = ObjectAnimator.ofFloat(
+                mImageViews.get(2),
+                "translationX",
+                200F);
+        ObjectAnimator animator3 = ObjectAnimator.ofFloat(
+                mImageViews.get(3),
+                "translationY",
+                -200F);
+        ObjectAnimator animator4 = ObjectAnimator.ofFloat(
+                mImageViews.get(4),
+                "translationX",
+                -200F);
+        AnimatorSet set = new AnimatorSet();
+        set.setDuration(500);
+        set.setInterpolator(new BounceInterpolator());
+        set.playTogether(
+                animator0,
+                animator1,
+                animator2,
+                animator3,
+                animator4);
+        set.start();
+        mFlag = false;
+    }
+}
+
+2.2 计时器
+
+
+public class TimerTest extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.timer);
+    }
+
+    public void tvTimer(final View view) {
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(0, 100);
+        valueAnimator.addUpdateListener(
+                new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                ((TextView) view).setText("$ " +
+                        (Integer) animation.getAnimatedValue());
+            }
+        });
+        valueAnimator.setDuration(3000);
+        valueAnimator.start();
+    }
+}
+
+
+2.3 下拉展开效果动画
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:onClick="llClick"
+        android:background="@android:color/holo_blue_bright"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/app_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_launcher" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:gravity="left"
+            android:text="Click Me"
+            android:textSize="30sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/hidden_view"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="@android:color/holo_orange_light"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageView
+            android:src="@drawable/ic_launcher"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <TextView
+            android:id="@+id/tv_hidden"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textSize="20sp"
+            android:text="I am hidden" />
+    </LinearLayout>
+</LinearLayout>
+
+public class DropTest extends Activity {
+
+    private LinearLayout mHiddenView;
+    private float mDensity;
+    private int mHiddenViewMeasuredHeight;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.drop);
+        mHiddenView = (LinearLayout) findViewById(R.id.hidden_view);
+        // 获取像素密度
+        mDensity = getResources().getDisplayMetrics().density;
+        // 获取布局的高度
+        mHiddenViewMeasuredHeight = (int) (mDensity * 40 + 0.5);
+    }
+
+    public void llClick(View view) {
+        if (mHiddenView.getVisibility() == View.GONE) {
+            // 打开动画
+            animateOpen(mHiddenView);
+        } else {
+            // 关闭动画
+            animateClose(mHiddenView);
+        }
+    }
+
+    private void animateOpen(final View view) {
+        view.setVisibility(View.VISIBLE);
+        ValueAnimator animator = createDropAnimator(
+                view,
+                0,
+                mHiddenViewMeasuredHeight);
+        animator.start();
+    }
+
+    private void animateClose(final View view) {
+        int origHeight = view.getHeight();
+        ValueAnimator animator = createDropAnimator(view, origHeight, 0);
+        animator.addListener(new AnimatorListenerAdapter() {
+            public void onAnimationEnd(Animator animation) {
+                view.setVisibility(View.GONE);
+            }
+        });
+        animator.start();
+    }
+
+    private ValueAnimator createDropAnimator(
+            final View view, int start, int end) {
+        ValueAnimator animator = ValueAnimator.ofInt(start, end);
+        animator.addUpdateListener(
+                new ValueAnimator.AnimatorUpdateListener() {
+
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                int value = (Integer) valueAnimator.getAnimatedValue();
+                ViewGroup.LayoutParams layoutParams =
+                        view.getLayoutParams();
+                layoutParams.height = value;
+                view.setLayoutParams(layoutParams);
+            }
+        });
+        return animator;
+    }
+}
+
+
+
+
+
+3.布局动画
+
+布局动画：作用在ViewGroup上，给ViewGroup增加View时添加一个动画过滤效果
+　android:animateLayoutChanges="true" //android默认的显示过滤效果，且无法使用自定义的动画来替换这个效果
+
+提供另外一个可自定义效果的：
+
+LinearLayout ll = (LinearLayout)findViewById(R.id.ll);
+//设置过滤动画
+ScaleAnimation sa = new ScaleAnimation(0, 1, 0, 1);
+
+sa.setDuration(2000);
+
+LayoutAnimationController lac = new LayoutAnimationController(sa, 0.5f);
+lac.setOrder(LayoutAnimationController.ORDER_NORMAL);
+
+ll.setLayoutAnimation(lac);
+
+
+4.自定义动画
+
+public class MainActivity extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+
+    public void btnAnim(View view) {
+        CustomAnim customAnim = new CustomAnim();
+        customAnim.setRotateY(30);
+        view.startAnimation(customAnim);
+    }
+
+    public void imgClose(View view) {
+        CustomTV customTV = new CustomTV();
+        view.startAnimation(customTV);
+    }
+}
+
+4.1自定义模拟电视机关闭效果
+
+public class CustomTV extends Animation {
+
+    private int mCenterWidth;
+    private int mCenterHeight;
+    private Camera mCamera = new Camera();
+    private float mRotateY = 0.0f;
+
+    @Override
+    public void initialize(int width,
+                           int height,
+                           int parentWidth,
+                           int parentHeight) {
+
+        super.initialize(width, height, parentWidth, parentHeight);
+        // 设置默认时长
+        setDuration(1000);
+        // 动画结束后保留状态
+        setFillAfter(true);
+        // 设置默认插值器
+        setInterpolator(new AccelerateInterpolator());
+        mCenterWidth = width / 2;
+        mCenterHeight = height / 2;
+    }
+
+    // 暴露接口-设置旋转角度
+    public void setRotateY(float rorateY) {
+        mRotateY = rorateY;
+    }
+
+    @Override
+    protected void applyTransformation(
+            float interpolatedTime,
+            Transformation t) {
+        final Matrix matrix = t.getMatrix();
+        matrix.preScale(1,
+                1 - interpolatedTime,
+                mCenterWidth,
+                mCenterHeight);
+    }
+}
+4.2
+public class CustomAnim extends Animation {
+
+    //缩放的中心点
+    private int mCenterWidth;
+    private int mCenterHeight;
+    private Camera mCamera = new Camera();
+    private float mRotateY = 0.0f;
+
+    @Override
+    public void initialize(int width,
+                           int height,
+                           int parentWidth,
+                           int parentHeight) {
+
+        super.initialize(width, height, parentWidth, parentHeight);
+        // 设置默认时长
+        setDuration(2000);
+        // 动画结束后保留状态
+        setFillAfter(true);
+        // 设置默认插值器
+        setInterpolator(new BounceInterpolator());
+        //缩放中心点设置为图片中心
+        mCenterWidth = width / 2;
+        mCenterHeight = height / 2;
+    }
+
+    // 暴露接口-设置旋转角度
+    public void setRotateY(float rotateY) {
+        mRotateY = rotateY;
+    }
+
+    @Override
+    protected void applyTransformation(
+            float interpolatedTime,
+            Transformation t) {
+        final Matrix matrix = t.getMatrix();
+        mCamera.save();
+        // 使用Camera设置旋转的角度
+        mCamera.rotateY(mRotateY * interpolatedTime);
+        // 将旋转变换作用到matrix上
+        mCamera.getMatrix(matrix);
+        mCamera.restore();
+        // 通过pre方法设置矩阵作用前的偏移量来改变旋转中心
+        matrix.preTranslate(mCenterWidth, mCenterHeight);
+        matrix.postTranslate(-mCenterWidth, -mCenterHeight);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
