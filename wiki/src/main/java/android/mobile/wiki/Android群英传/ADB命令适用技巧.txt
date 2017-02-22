@@ -19,7 +19,7 @@ eg:adb push D:\Test.apk /system/app/
 adb push D:\file.txt /system/temp/
 
 7.从手机获取文件
-adb push /system/temp/ D:\file.txt
+adb pull /system/temp/ D:\file.txt
 
 8.查看Log
 adb shell -> logcat | grep "abc"
@@ -57,12 +57,18 @@ adb shell input touchscreen swipe 18 665 18 350
 
 15.启动一个activity
 adb shell am start -n 包名/包名+类名
+关闭一个app:
+adb shell pm clear 包名
 
 16.录制屏幕
 adb shell screenrecord /sdcard/demo.mp4
 
 17.重新启动
 adb reboot
+
+18.查看进程信息
+adb shell ps
+adb shell ps | grep 包名（包名就是默认当前进程名）
 
 
 
